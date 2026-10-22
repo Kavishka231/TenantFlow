@@ -2,11 +2,11 @@ import "dotenv/config";
 
 import { defineConfig } from "drizzle-kit";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.MIGRATION_DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL is required for Drizzle commands. Copy .env.example to .env.local and use a development database.",
+    "MIGRATION_DATABASE_URL is required for Drizzle commands. Use development-only DDL credentials and never expose them to the browser.",
   );
 }
 
