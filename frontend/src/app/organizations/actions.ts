@@ -2,12 +2,15 @@
 
 import { redirect } from "next/navigation";
 
+import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import type { OrganizationActionState } from "@/lib/organizations/action-state";
 import {
   createOrganizationForUser,
   OrganizationSlugConflictError,
 } from "@/lib/organizations/create";
 import { createOrganizationSchema } from "@/lib/organizations/validation";
+import { setSelectedWorkspace } from "@/lib/organizations/workspace";
+import { workspaceIdSchema } from "@/lib/organizations/workspace-validation";
 import { createClient } from "@/lib/supabase/server";
 
 export async function createOrganizationAction(
@@ -36,7 +39,8 @@ export async function createOrganizationAction(
   }
 
   try {
-    await createOrganizationForUser(user.id, result.data);
+    const organization = await createOrganizationForUser(user.id, result.data);
+    await setSelectedWorkspace(organization.id);
   } catch (error) {
     if (error instanceof OrganizationSlugConflictError) {
       return { message: error.message, status: "error" };
@@ -48,5 +52,35 @@ export async function createOrganizationAction(
     };
   }
 
+  redirect("/dashboard");
+}
+
+export async function switchWorkspaceAction(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const result = workspaceIdSchema.safeParse(formData.get("organizationId"));
+
+  if (!result.success) {
+    redirect("/dashboard?workspaceError=invalid");
+  }
+
+  try {
+    await requireOrganizationPermission(
+      user.id,
+      result.data,
+      "read_workspace",
+    );
+  } catch {
+    redirect("/dashboard?workspaceError=denied");
+  }
+
+  await setSelectedWorkspace(result.data);
   redirect("/dashboard");
 }
