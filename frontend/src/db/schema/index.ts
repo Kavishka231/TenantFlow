@@ -93,9 +93,69 @@ export const organizationMembers = pgTable(
   ],
 ).enableRLS();
 
+export const organizationInvitations = pgTable(
+  "organization_invitations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 320 }).notNull(),
+    role: organizationRole("role").default("member").notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: uuid("accepted_by").references(() => profiles.id, {
+      onDelete: "restrict",
+    }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedBy: uuid("revoked_by").references(() => profiles.id, {
+      onDelete: "restrict",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("organization_invitations_token_hash_unique").on(
+      table.tokenHash,
+    ),
+    uniqueIndex("organization_invitations_active_email_unique")
+      .on(table.organizationId, table.email)
+      .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
+    index("organization_invitations_organization_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index("organization_invitations_email_idx").on(table.email),
+    check(
+      "organization_invitations_email_normalized",
+      sql`${table.email} = lower(btrim(${table.email})) and char_length(${table.email}) between 3 and 320`,
+    ),
+    check(
+      "organization_invitations_role_not_owner",
+      sql`${table.role} in ('admin', 'member')`,
+    ),
+    check(
+      "organization_invitations_expiry_after_creation",
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
+    check(
+      "organization_invitations_terminal_state",
+      sql`not (${table.acceptedAt} is not null and ${table.revokedAt} is not null)`,
+    ),
+  ],
+).enableRLS();
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   createdOrganizations: many(organizations),
   memberships: many(organizationMembers),
+  sentInvitations: many(organizationInvitations, {
+    relationName: "invitation_sender",
+  }),
 }));
 
 export const organizationsRelations = relations(
@@ -106,6 +166,22 @@ export const organizationsRelations = relations(
       references: [profiles.id],
     }),
     members: many(organizationMembers),
+    invitations: many(organizationInvitations),
+  }),
+);
+
+export const organizationInvitationsRelations = relations(
+  organizationInvitations,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationInvitations.organizationId],
+      references: [organizations.id],
+    }),
+    inviter: one(profiles, {
+      fields: [organizationInvitations.invitedBy],
+      references: [profiles.id],
+      relationName: "invitation_sender",
+    }),
   }),
 );
 
