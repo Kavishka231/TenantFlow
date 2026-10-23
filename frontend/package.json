@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "test:rls": "vitest run src/db/rls.integration.test.ts",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },

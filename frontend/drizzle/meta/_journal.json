@@ -8,6 +8,13 @@
       "when": 1792665522487,
       "tag": "0000_chunky_jane_foster",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792728202769,
+      "tag": "0001_strengthen_organization_rls",
+      "breakpoints": true
     }
   ]
 }
