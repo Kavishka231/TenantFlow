@@ -1,22 +1,30 @@
 # Roadmap
 
-## Day 1 — completed locally
+## Day 1 — project foundation
 
-- project and UI foundation
-- Supabase authentication integration
+- Next.js, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
+- Supabase authentication clients and flows
 - Drizzle/PostgreSQL configuration
 - initial identity and organization schema with RLS
-- registration, login, logout, callback, protected route, and unit tests
 
-Live migration and authentication verification remain environment-dependent and are not marked complete without development credentials.
+## Day 2 — organization workspaces
 
-## Recommended Day 2
+- transactional organization creation and OWNER assignment
+- reusable role-based server authorization
+- authorized workspace listing and persistent selection
+- onboarding and workspace UI states
+- strengthened membership RLS migration
+- Vitest, RLS integration, and Playwright test coverage
 
-1. provision dedicated development migration/runtime roles and run the migration;
-2. add database integration tests proving cross-tenant denial under the runtime role;
-3. verify email confirmation, session refresh, logout, and protected redirects against Supabase;
-4. implement transactional organization onboarding with the registering user as owner;
-5. add membership authorization helpers and tests before any tenant-owned business feature;
-6. add Playwright authentication smoke tests with isolated test users.
+Live migration, RLS, and authentication verification remain environment-dependent and must not be marked passed until development credentials and test identities are configured.
+
+## Recommended Day 3
+
+1. provision and verify development database roles and apply both migrations;
+2. run the live RLS and Playwright suites, then address any environment-specific findings;
+3. implement secure team invitations with expiring, single-use tokens;
+4. add OWNER-only ownership transfer and protected member removal workflows;
+5. add organization settings with optimistic concurrency and audit events;
+6. establish CI with disposable Supabase test infrastructure before tenant-owned business modules.
 
 Customer management, invoices, Stripe, and other business modules should follow only after tenant isolation is proven end to end.

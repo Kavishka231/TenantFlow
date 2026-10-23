@@ -7,7 +7,8 @@ TenantFlow currently uses a single Next.js App Router application. Server Action
 1. `src/proxy.ts` refreshes Supabase cookies and protects dashboard routes.
 2. server-rendered protected pages call `supabase.auth.getUser()` rather than trusting unverified session data.
 3. server actions validate input and invoke Supabase Auth through the server client.
-4. future tenant data operations must verify membership and execute through `withUserContext` so PostgreSQL evaluates RLS with transaction-local identity claims.
+4. organization operations verify membership and role permissions before using tenant context;
+5. direct PostgreSQL operations execute through `withUserContext` so RLS evaluates transaction-local identity claims.
 
 The browser client receives only Supabase's project URL and publishable key. Direct PostgreSQL connections, migration credentials, and privileged operations stay on the server.
 
@@ -18,5 +19,13 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/db/client.ts`: server-only Drizzle connection and authenticated transaction wrapper
 - `src/db/schema/`: typed database model
 - `drizzle/`: reviewed, version-controlled SQL migrations
+- `src/lib/organizations/authorization.ts`: membership and role authorization boundary
+- `src/lib/organizations/workspace.ts`: authorized workspace resolution and secure preference cookie
 
-Organization onboarding and tenant-owned business entities are intentionally outside Day 1.
+## Workspace selection
+
+The selected organization UUID is stored in an HTTP-only, SameSite=Lax cookie. It is a preference, not proof of authorization. Each request lists the authenticated user's memberships under RLS and accepts the cookie only when it matches that authorized set. Forged, stale, or cross-tenant values fall back safely.
+
+Organization creation pre-generates the UUID and inserts both the organization and OWNER membership in one database transaction. This avoids exposing a partially initialized tenant and avoids relying on SELECT visibility before membership exists.
+
+Tenant-owned business entities remain outside Day 2.

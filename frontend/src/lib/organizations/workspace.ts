@@ -6,7 +6,10 @@ import {
   listOrganizationsForUser,
   type OrganizationSummary,
 } from "@/lib/organizations/list";
-import { workspaceIdSchema } from "@/lib/organizations/workspace-validation";
+import {
+  resolveActiveWorkspace,
+  workspaceIdSchema,
+} from "@/lib/organizations/workspace-validation";
 
 export const workspaceCookieName = "tenantflow_workspace";
 
@@ -31,15 +34,13 @@ export async function getActiveWorkspaceForUser(
 }> {
   const organizations = await listOrganizationsForUser(userId);
   const cookieStore = await cookies();
-  const selectedId = workspaceIdSchema.safeParse(
+  const activeOrganization = resolveActiveWorkspace(
+    organizations,
     cookieStore.get(workspaceCookieName)?.value,
   );
-  const activeOrganization = selectedId.success
-    ? organizations.find((organization) => organization.id === selectedId.data)
-    : undefined;
 
   return {
-    activeOrganization: activeOrganization ?? organizations[0] ?? null,
+    activeOrganization,
     organizations,
   };
 }

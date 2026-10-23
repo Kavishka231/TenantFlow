@@ -1,5 +1,5 @@
 # TenantFlow frontend
 
-This directory contains the Next.js application, Supabase authentication integration, Drizzle schema, and SQL migrations.
+This directory contains the Next.js application, Supabase authentication integration, organization workspace authorization, Drizzle schema and migrations, Vitest suites, and Playwright workflows.
 
-Use the root [README](../README.md) for setup and verification. Never commit `.env.local` or place database/service-role credentials in `NEXT_PUBLIC_` variables.
+Use the root [README](../README.md) for setup and verification. Never commit `.env.local` or `.env.test.local`, and never place database/service-role credentials in `NEXT_PUBLIC_` variables.
