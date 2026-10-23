@@ -22,6 +22,11 @@ export const createOrganizationSchema = z.object({
   slug: organizationSlugSchema,
 });
 
+export const updateOrganizationSchema = z.object({
+  organizationId: z.uuid(),
+  name: organizationNameSchema,
+});
+
 export function slugifyOrganizationName(value: string) {
   return value
     .normalize("NFKD")

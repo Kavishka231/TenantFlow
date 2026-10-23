@@ -89,12 +89,20 @@ async function DashboardContent({
                   This workspace was resolved from your verified membership, not from client input.
                 </p>
                 {activeOrganization.role !== "member" ? (
-                  <Link
-                    href={`/organizations/${activeOrganization.id}/team`}
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}
-                  >
-                    Manage team
-                  </Link>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      href={`/organizations/${activeOrganization.id}/team`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Manage team
+                    </Link>
+                    <Link
+                      href={`/organizations/${activeOrganization.id}/settings`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Settings
+                    </Link>
+                  </div>
                 ) : null}
               </article>
               <article className="rounded-2xl border bg-white p-6 shadow-sm">

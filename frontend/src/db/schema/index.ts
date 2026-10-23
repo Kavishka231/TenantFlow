@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   check,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -16,6 +17,16 @@ export const organizationRole = pgEnum("organization_role", [
   "owner",
   "admin",
   "member",
+]);
+
+export const auditEventType = pgEnum("audit_event_type", [
+  "invitation_created",
+  "invitation_revoked",
+  "invitation_accepted",
+  "member_role_changed",
+  "member_removed",
+  "ownership_transferred",
+  "organization_updated",
 ]);
 
 export const profiles = pgTable(
@@ -150,6 +161,32 @@ export const organizationInvitations = pgTable(
   ],
 ).enableRLS();
 
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").notNull(),
+    eventType: auditEventType("event_type").notNull(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, string>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("audit_events_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index("audit_events_actor_idx").on(table.actorId),
+  ],
+).enableRLS();
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   createdOrganizations: many(organizations),
   memberships: many(organizationMembers),
@@ -167,6 +204,7 @@ export const organizationsRelations = relations(
     }),
     members: many(organizationMembers),
     invitations: many(organizationInvitations),
+    auditEvents: many(auditEvents),
   }),
 );
 
@@ -184,6 +222,13 @@ export const organizationInvitationsRelations = relations(
     }),
   }),
 );
+
+export const auditEventsRelations = relations(auditEvents, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [auditEvents.organizationId],
+    references: [organizations.id],
+  }),
+}));
 
 export const organizationMembersRelations = relations(
   organizationMembers,
