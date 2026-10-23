@@ -5,6 +5,11 @@ import {
 } from "@/app/team/actions";
 import { Button } from "@/components/ui/button";
 import type { TeamMember } from "@/lib/team/list";
+import {
+  canChangeMemberRole,
+  canRemoveMember,
+  canTransferOwnership,
+} from "@/lib/team/membership-policy";
 
 export function MemberActions({
   actorId,
@@ -17,13 +22,14 @@ export function MemberActions({
   member: TeamMember;
   organizationId: string;
 }) {
-  const isSelf = actorId === member.userId;
-  const ownerCanManageRole =
-    actorRole === "owner" && !isSelf && member.role !== "owner";
-  const canRemove =
-    !isSelf &&
-    (actorRole === "owner" ||
-      (actorRole === "admin" && member.role === "member"));
+  const context = {
+    actorId,
+    actorRole,
+    targetRole: member.role,
+    targetUserId: member.userId,
+  };
+  const ownerCanManageRole = canChangeMemberRole(context);
+  const canRemove = canRemoveMember(context);
 
   if (!ownerCanManageRole && !canRemove) {
     return null;
@@ -31,7 +37,7 @@ export function MemberActions({
 
   return (
     <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
-      {ownerCanManageRole ? (
+      {canTransferOwnership(context) ? (
         <form action={changeMemberRoleAction} className="flex gap-2">
           <MembershipFields
             organizationId={organizationId}

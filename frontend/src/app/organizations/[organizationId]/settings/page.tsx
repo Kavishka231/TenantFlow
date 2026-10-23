@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, History, Settings } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { OrganizationSettingsForm } from "@/components/organizations/settings-form";
 import { buttonVariants } from "@/components/ui/button";
@@ -23,7 +24,7 @@ const eventLabels = {
   organization_updated: "Organization updated",
 } as const;
 
-export default async function OrganizationSettingsPage({
+async function OrganizationSettingsContent({
   params,
 }: {
   params: Promise<{ organizationId: string }>;
@@ -106,6 +107,31 @@ export default async function OrganizationSettingsPage({
               )}
             </CardContent>
           </Card>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function OrganizationSettingsPage(props: {
+  params: Promise<{ organizationId: string }>;
+}) {
+  return (
+    <Suspense fallback={<SettingsLoading />}>
+      <OrganizationSettingsContent {...props} />
+    </Suspense>
+  );
+}
+
+function SettingsLoading() {
+  return (
+    <main className="min-h-screen animate-pulse bg-slate-50 px-6 py-10">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="h-10 w-40 rounded-lg bg-slate-200" />
+        <div className="h-24 rounded-2xl bg-white" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="h-72 rounded-2xl bg-white" />
+          <div className="h-72 rounded-2xl bg-white" />
         </div>
       </div>
     </main>

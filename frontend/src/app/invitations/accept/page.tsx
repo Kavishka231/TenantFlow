@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MailCheck } from "lucide-react";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { AcceptInvitationForm } from "@/components/team/accept-invitation-form";
 import { invitationTokenSchema } from "@/lib/team/validation";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AcceptInvitationPage({
+async function InvitationContent({
   searchParams,
 }: {
   searchParams: Promise<{ token?: string }>;
@@ -50,6 +51,16 @@ export default async function AcceptInvitationPage({
         <AcceptInvitationForm token={tokenResult.data} />
       </section>
     </main>
+  );
+}
+
+export default function AcceptInvitationPage(props: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="min-h-screen animate-pulse bg-slate-50" />}>
+      <InvitationContent {...props} />
+    </Suspense>
   );
 }
 

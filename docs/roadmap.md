@@ -18,13 +18,25 @@
 
 Live migration, RLS, and authentication verification remain environment-dependent and must not be marked passed until development credentials and test identities are configured.
 
-## Recommended Day 3
+## Day 3 — team management and audit logging
 
-1. provision and verify development database roles and apply both migrations;
-2. run the live RLS and Playwright suites, then address any environment-specific findings;
-3. implement secure team invitations with expiring, single-use tokens;
-4. add OWNER-only ownership transfer and protected member removal workflows;
-5. add organization settings with optimistic concurrency and audit events;
-6. establish CI with disposable Supabase test infrastructure before tenant-owned business modules.
+- secure expiring invitations and verified-email atomic acceptance
+- OWNER/ADMIN team management and invitation revocation
+- protected role changes, member removal, and ownership transfer
+- concurrency-safe final-owner invariants
+- organization settings and append-only tenant audit events
+- Vitest, PostgreSQL RLS, and Playwright coverage
+
+Live migration, RLS, authentication, and browser verification remain blocked
+until development credentials and confirmed test identities are configured.
+
+## Recommended Day 4
+
+1. provision separate migration and non-BYPASSRLS runtime roles and apply all migrations;
+2. run live authentication, RLS, invitation-delivery, and Playwright verification;
+3. add CI with an isolated Supabase test project and disposable identities;
+4. add audit-log pagination, filters, retention policy, and actor display names;
+5. add invitation resend with rotation and delivery observability;
+6. define the first tenant-owned customer model only after isolation is proven end to end.
 
 Customer management, invoices, Stripe, and other business modules should follow only after tenant isolation is proven end to end.

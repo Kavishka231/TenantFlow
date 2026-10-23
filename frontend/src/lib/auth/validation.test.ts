@@ -37,6 +37,12 @@ describe("post-authentication redirects", () => {
     );
   });
 
+  it("preserves local invitation return paths", () => {
+    expect(getSafeRedirectPath("/invitations/accept?token=abc_123")).toBe(
+      "/invitations/accept?token=abc_123",
+    );
+  });
+
   it.each([
     "https://attacker.example",
     "//attacker.example",

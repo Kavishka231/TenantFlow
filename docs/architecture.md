@@ -21,6 +21,10 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `drizzle/`: reviewed, version-controlled SQL migrations
 - `src/lib/organizations/authorization.ts`: membership and role authorization boundary
 - `src/lib/organizations/workspace.ts`: authorized workspace resolution and secure preference cookie
+- `src/lib/team/invitations.ts`: cryptographic invitation creation and delivery handoff
+- `src/lib/team/acceptance.ts`: single-use invitation acceptance boundary
+- `src/lib/team/members.ts`: membership and ownership database operations
+- `src/lib/team/audit.ts`: tenant-authorized audit reads
 
 ## Workspace selection
 
@@ -28,4 +32,16 @@ The selected organization UUID is stored in an HTTP-only, SameSite=Lax cookie. I
 
 Organization creation pre-generates the UUID and inserts both the organization and OWNER membership in one database transaction. This avoids exposing a partially initialized tenant and avoids relying on SELECT visibility before membership exists.
 
-Tenant-owned business entities remain outside Day 2.
+## Team management
+
+Invitation plaintext exists only long enough to reach the configured server-side
+delivery adapter. PostgreSQL stores a SHA-256 hash. Acceptance derives identity
+and confirmed email from Supabase Auth inside a locked database function; the
+browser cannot choose the resulting organization or role.
+
+Role changes, removal, and ownership transfer use organization-scoped advisory
+transaction locks. Audit triggers run in the same transaction as each business
+change. The application role can read authorized audit events but has no audit
+insert, update, or delete grant.
+
+Tenant-owned customer and billing entities remain outside Day 3.

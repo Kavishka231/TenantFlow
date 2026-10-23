@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { sql } from "drizzle-orm";
 import type { z } from "zod";
@@ -8,6 +8,7 @@ import type { z } from "zod";
 import { withUserContext } from "@/db/client";
 import { deliverInvitation } from "@/lib/team/delivery";
 import type { createInvitationSchema } from "@/lib/team/validation";
+import { hashInvitationToken } from "@/lib/team/token";
 
 type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
 
@@ -25,10 +26,6 @@ function isUniqueViolation(error: unknown) {
     "code" in error &&
     error.code === "23505"
   );
-}
-
-export function hashInvitationToken(token: string) {
-  return createHash("sha256").update(token, "utf8").digest("hex");
 }
 
 export async function createInvitationForUser(

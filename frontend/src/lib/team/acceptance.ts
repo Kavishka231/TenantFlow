@@ -3,7 +3,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 
 import { withUserContext } from "@/db/client";
-import { hashInvitationToken } from "@/lib/team/invitations";
+import { hashInvitationToken } from "@/lib/team/token";
 import { invitationTokenSchema } from "@/lib/team/validation";
 
 export type AcceptedInvitation = {

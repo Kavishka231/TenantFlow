@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 2 implements organization workspaces on top of the Day 1 foundation:
+Day 3 implements secure team management and auditability on top of the workspace foundation:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -19,8 +19,15 @@ Day 2 implements organization workspaces on top of the Day 1 foundation:
 - organization onboarding, selection, loading, empty, and error states
 - strengthened membership RLS policies and environment-gated integration tests
 - environment-gated Playwright authentication and workspace workflows
+- expiring, single-use invitations stored only as SHA-256 hashes
+- verified-email invitation acceptance with replay protection
+- OWNER/ADMIN team management with database-enforced role boundaries
+- serialized role changes, member removal, and ownership transfer
+- last-owner protection for membership updates and deletes
+- organization settings and tenant-isolated, append-only audit events
+- environment-gated RLS and Playwright coverage for team workflows
 
-Customer management, invoices, Stripe billing, and team invitations are not implemented.
+Customer management, invoices, and Stripe billing are not implemented.
 
 ## Repository structure
 
@@ -67,6 +74,13 @@ Apply the reviewed migration to a development database:
 npm run db:migrate
 ```
 
+Invitation delivery is server-only. Configure both
+`INVITATION_DELIVERY_WEBHOOK_URL` and `INVITATION_DELIVERY_WEBHOOK_SECRET` for
+an HTTPS mail-delivery adapter. During local development only,
+`INVITATION_DEV_OUTBOX=true` writes acceptance URLs to the gitignored
+`frontend/.tenantflow-dev/invitations/` directory. Never use that outbox in
+production.
+
 The runtime login role must inherit Supabase's `authenticated` role without owning the migrated tables. Test RLS using that runtime role and transaction-local JWT claims; see [database.md](docs/database.md) and [security.md](docs/security.md).
 
 Start the application:
@@ -87,7 +101,7 @@ npm run build
 npm run db:check
 ```
 
-`db:check` and migration generation need `MIGRATION_DATABASE_URL` present because the Drizzle configuration deliberately refuses to invent a database target. RLS integration tests require four real Supabase Auth test identities and both database roles in `.env.test.local`. Playwright requires two confirmed disposable test accounts and `npx playwright install chromium`. Applying migrations and exercising live authentication require real development credentials.
+`db:check` and migration generation need `MIGRATION_DATABASE_URL` present because the Drizzle configuration deliberately refuses to invent a database target. RLS integration tests require four real Supabase Auth test identities and both database roles in `.env.test.local`. Playwright requires two confirmed disposable test accounts and `npx playwright install chromium`; team invitation E2E coverage additionally requires the development outbox. Applying migrations and exercising live authentication require real development credentials.
 
 ## Security model
 
@@ -98,6 +112,11 @@ Authentication alone is not tenant isolation. Every tenant operation must combin
 3. PostgreSQL RLS under a non-owner, non-`BYPASSRLS` runtime role.
 
 Direct Drizzle work must use the transaction wrapper in `frontend/src/db/client.ts`, which sets transaction-local Supabase-compatible JWT claims. Organization identifiers from forms, routes, and cookies are always reauthorized against membership. Drizzle and the selected-workspace cookie do not automatically enforce RLS or tenant boundaries.
+
+Invitation creation, acceptance, membership mutations, and ownership transfer
+also execute through reviewed PostgreSQL functions. Those functions validate
+`auth.uid()`, lock sensitive rows or ownership boundaries, and do not grant
+callers direct access to plaintext tokens or audit mutations.
 
 ## Documentation
 

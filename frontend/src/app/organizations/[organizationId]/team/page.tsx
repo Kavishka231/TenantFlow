@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Mail, Shield, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { revokeInvitationAction } from "@/app/team/actions";
 import { InvitationForm } from "@/components/team/invitation-form";
@@ -12,10 +13,11 @@ import { requireOrganizationPermission } from "@/lib/organizations/authorization
 import { createClient } from "@/lib/supabase/server";
 import { listOrganizationTeam } from "@/lib/team/list";
 import { cn } from "@/lib/utils";
+import TeamLoading from "./loading";
 
 export const metadata: Metadata = { title: "Team management" };
 
-export default async function TeamPage({
+async function TeamContent({
   params,
   searchParams,
 }: {
@@ -173,6 +175,17 @@ export default async function TeamPage({
         </div>
       </div>
     </main>
+  );
+}
+
+export default function TeamPage(props: {
+  params: Promise<{ organizationId: string }>;
+  searchParams: Promise<{ teamStatus?: string }>;
+}) {
+  return (
+    <Suspense fallback={<TeamLoading />}>
+      <TeamContent {...props} />
+    </Suspense>
   );
 }
 
