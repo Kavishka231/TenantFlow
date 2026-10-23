@@ -15,6 +15,7 @@ export const registrationSchema = z
       .min(8, "Use at least 8 characters.")
       .max(72, "Use at most 72 characters."),
     confirmPassword: z.string(),
+    next: z.string().optional(),
   })
   .refine((values) => values.password === values.confirmPassword, {
     message: "Passwords do not match.",

@@ -48,6 +48,7 @@ export async function registerAction(
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+    next: formData.get("next") ?? undefined,
   });
 
   if (!result.success) {
@@ -55,13 +56,14 @@ export async function registerAction(
   }
 
   const env = getPublicEnv();
+  const next = getSafeRedirectPath(result.data.next);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: result.data.email,
     password: result.data.password,
     options: {
       data: { full_name: result.data.fullName },
-      emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard`,
+      emailRedirectTo: `${env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
 
@@ -73,7 +75,7 @@ export async function registerAction(
   }
 
   if (data.session) {
-    redirect("/dashboard");
+    redirect(next);
   }
 
   return {

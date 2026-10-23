@@ -97,7 +97,7 @@ export function AuthForm({ action, mode, next }: AuthFormProps) {
       </CardContent>
       <CardFooter className="justify-center text-sm text-muted-foreground">
         {isLogin ? "New to TenantFlow?" : "Already have an account?"}&nbsp;
-        <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={isLogin ? "/register" : "/login"}>
+        <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={`${isLogin ? "/register" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`}>
           {isLogin ? "Create an account" : "Sign in"}
         </Link>
       </CardFooter>
