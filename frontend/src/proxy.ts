@@ -28,7 +28,11 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
   const isAuthPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register";
 
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  const isProtectedRoute =
+    request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/organizations");
+
+  if (!user && isProtectedRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -43,5 +47,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/organizations/:path*", "/login", "/register"],
 };

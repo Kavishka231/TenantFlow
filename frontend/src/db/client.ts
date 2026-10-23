@@ -33,10 +33,12 @@ function getSqlClient() {
  * own tenant tables or have BYPASSRLS. Callers still need an authenticated
  * transaction context; importing Drizzle never provides tenant isolation.
  */
-const database = drizzle({ client: getSqlClient() });
+function getDatabase() {
+  return drizzle({ client: getSqlClient() });
+}
 
 export type DatabaseTransaction = Parameters<
-  Parameters<typeof database.transaction>[0]
+  Parameters<ReturnType<typeof getDatabase>["transaction"]>[0]
 >[0];
 
 export async function withUserContext<T>(
@@ -45,7 +47,7 @@ export async function withUserContext<T>(
 ) {
   const validatedUserId = z.uuid().parse(userId);
 
-  return database.transaction(async (transaction) => {
+  return getDatabase().transaction(async (transaction) => {
     const claims = JSON.stringify({ sub: validatedUserId, role: "authenticated" });
 
     await transaction.execute(sql`
