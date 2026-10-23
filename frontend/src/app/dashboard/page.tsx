@@ -88,6 +88,14 @@ async function DashboardContent({
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   This workspace was resolved from your verified membership, not from client input.
                 </p>
+                {activeOrganization.role !== "member" ? (
+                  <Link
+                    href={`/organizations/${activeOrganization.id}/team`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4")}
+                  >
+                    Manage team
+                  </Link>
+                ) : null}
               </article>
               <article className="rounded-2xl border bg-white p-6 shadow-sm">
                 <Users className="size-6 text-indigo-600" aria-hidden="true" />

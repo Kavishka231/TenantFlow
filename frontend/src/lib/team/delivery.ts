@@ -17,7 +17,10 @@ type InvitationDelivery = {
 
 export type InvitationDeliveryResult =
   | { channel: "webhook" | "development-outbox"; delivered: true }
-  | { channel: "unconfigured"; delivered: false };
+  | {
+      channel: "unconfigured" | "delivery-error";
+      delivered: false;
+    };
 
 const webhookEnvSchema = z
   .object({

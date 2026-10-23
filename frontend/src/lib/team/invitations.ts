@@ -75,7 +75,7 @@ export async function createInvitationForUser(
     organizationName,
     role: input.role,
     token,
-  });
+  }).catch(() => ({ channel: "delivery-error", delivered: false }) as const);
 
   return { delivery, expiresAt, id: invitationId };
 }
