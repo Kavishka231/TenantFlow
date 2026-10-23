@@ -1,0 +1,23 @@
+import { describe, expect, it } from "vitest";
+
+import { roleHasPermission, rolesWithPermission } from "./permissions";
+
+describe("organization role permissions", () => {
+  it("allows every member to read their workspace", () => {
+    expect(rolesWithPermission("read_workspace")).toEqual([
+      "owner",
+      "admin",
+      "member",
+    ]);
+  });
+
+  it("allows owners and admins to manage members", () => {
+    expect(roleHasPermission("owner", "manage_members")).toBe(true);
+    expect(roleHasPermission("admin", "manage_members")).toBe(true);
+    expect(roleHasPermission("member", "manage_members")).toBe(false);
+  });
+
+  it("reserves organization deletion for owners", () => {
+    expect(rolesWithPermission("delete_organization")).toEqual(["owner"]);
+  });
+});
