@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { revokeInvitationAction } from "@/app/team/actions";
 import { InvitationForm } from "@/components/team/invitation-form";
+import { MemberActions } from "@/components/team/member-actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -16,8 +17,10 @@ export const metadata: Metadata = { title: "Team management" };
 
 export default async function TeamPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ organizationId: string }>;
+  searchParams: Promise<{ teamStatus?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -34,6 +37,7 @@ export default async function TeamPage({
     user.id,
     organization.id,
   );
+  const { teamStatus } = await searchParams;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
@@ -56,6 +60,17 @@ export default async function TeamPage({
             Manage workspace access and pending invitations.
           </p>
         </header>
+
+        {teamStatus ? (
+          <p
+            className={`rounded-xl border p-4 text-sm ${teamStatus === "updated" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}
+            role={teamStatus === "updated" ? "status" : "alert"}
+          >
+            {teamStatus === "updated"
+              ? "Team membership updated."
+              : "That membership change is not permitted."}
+          </p>
+        ) : null}
 
         <Card>
           <CardHeader>
@@ -85,24 +100,32 @@ export default async function TeamPage({
                 members.map((member) => (
                   <div
                     key={member.userId}
-                    className="flex items-center justify-between gap-4 rounded-xl border p-4"
+                    className="rounded-xl border p-4"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-100">
-                        <UserRound className="size-4" aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {member.fullName ?? "Team member"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Joined {member.joinedAt.toLocaleDateString()}
-                        </p>
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-100">
+                          <UserRound className="size-4" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {member.fullName ?? "Team member"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Joined {member.joinedAt.toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize">
+                        {member.role}
+                      </span>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize">
-                      {member.role}
-                    </span>
+                    <MemberActions
+                      actorId={user.id}
+                      actorRole={organization.role}
+                      member={member}
+                      organizationId={organization.id}
+                    />
                   </div>
                 ))
               ) : (

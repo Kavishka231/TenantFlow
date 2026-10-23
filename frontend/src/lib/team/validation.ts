@@ -17,6 +17,15 @@ export const createInvitationSchema = z.object({
 
 export const invitationIdSchema = z.uuid();
 
+export const memberMutationSchema = z.object({
+  organizationId: z.uuid(),
+  userId: z.uuid(),
+});
+
+export const changeMemberRoleSchema = memberMutationSchema.extend({
+  role: z.enum(["admin", "member"]),
+});
+
 export const invitationTokenSchema = z
   .string()
   .min(40)

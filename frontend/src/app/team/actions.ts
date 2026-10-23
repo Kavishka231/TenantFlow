@@ -12,8 +12,15 @@ import {
 } from "@/lib/team/invitations";
 import {
   createInvitationSchema,
+  changeMemberRoleSchema,
   invitationIdSchema,
+  memberMutationSchema,
 } from "@/lib/team/validation";
+import {
+  changeMemberRoleForUser,
+  removeMemberForUser,
+  transferOwnershipForUser,
+} from "@/lib/team/members";
 import { createClient } from "@/lib/supabase/server";
 
 async function getUser() {
@@ -96,4 +103,79 @@ export async function revokeInvitationAction(formData: FormData) {
   await requireOrganizationPermission(user.id, organizationId, "manage_members");
   await revokeInvitationForUser(user.id, invitationId.data);
   revalidatePath(`/organizations/${organizationId}/team`);
+}
+
+function teamPath(organizationId: string, result: "updated" | "denied") {
+  return `/organizations/${organizationId}/team?teamStatus=${result}`;
+}
+
+export async function changeMemberRoleAction(formData: FormData) {
+  const result = changeMemberRoleSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    role: formData.get("role"),
+    userId: formData.get("userId"),
+  });
+
+  if (!result.success) {
+    redirect("/dashboard");
+  }
+
+  const user = await getUser();
+  const organization = await requireOrganizationPermission(
+    user.id,
+    result.data.organizationId,
+    "manage_members",
+  );
+  const changed =
+    organization.role === "owner" &&
+    (await changeMemberRoleForUser(user.id, result.data));
+
+  revalidatePath(`/organizations/${organization.id}/team`);
+  redirect(teamPath(organization.id, changed ? "updated" : "denied"));
+}
+
+export async function removeMemberAction(formData: FormData) {
+  const result = memberMutationSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    userId: formData.get("userId"),
+  });
+
+  if (!result.success) {
+    redirect("/dashboard");
+  }
+
+  const user = await getUser();
+  const organization = await requireOrganizationPermission(
+    user.id,
+    result.data.organizationId,
+    "manage_members",
+  );
+  const changed = await removeMemberForUser(user.id, result.data);
+
+  revalidatePath(`/organizations/${organization.id}/team`);
+  redirect(teamPath(organization.id, changed ? "updated" : "denied"));
+}
+
+export async function transferOwnershipAction(formData: FormData) {
+  const result = memberMutationSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    userId: formData.get("userId"),
+  });
+
+  if (!result.success) {
+    redirect("/dashboard");
+  }
+
+  const user = await getUser();
+  const organization = await requireOrganizationPermission(
+    user.id,
+    result.data.organizationId,
+    "manage_members",
+  );
+  const changed =
+    organization.role === "owner" &&
+    (await transferOwnershipForUser(user.id, result.data));
+
+  revalidatePath(`/organizations/${organization.id}/team`);
+  redirect(teamPath(organization.id, changed ? "updated" : "denied"));
 }
