@@ -28,6 +28,9 @@ export const auditEventType = pgEnum("audit_event_type", [
   "member_removed",
   "ownership_transferred",
   "organization_updated",
+  "customer_created",
+  "customer_updated",
+  "customer_deleted",
 ]);
 
 export const customerStatus = pgEnum("customer_status", [

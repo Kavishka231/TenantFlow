@@ -22,6 +22,9 @@ const eventLabels = {
   member_removed: "Member removed",
   ownership_transferred: "Ownership transferred",
   organization_updated: "Organization updated",
+  customer_created: "Customer created",
+  customer_updated: "Customer updated",
+  customer_deleted: "Customer deleted",
 } as const;
 
 async function OrganizationSettingsContent({
