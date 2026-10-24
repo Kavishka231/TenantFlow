@@ -20,4 +20,16 @@ describe("organization role permissions", () => {
   it("reserves organization deletion for owners", () => {
     expect(rolesWithPermission("delete_organization")).toEqual(["owner"]);
   });
+
+  it("allows members to read customers but managers to mutate them", () => {
+    expect(rolesWithPermission("read_customers")).toEqual([
+      "owner",
+      "admin",
+      "member",
+    ]);
+    expect(rolesWithPermission("manage_customers")).toEqual([
+      "owner",
+      "admin",
+    ]);
+  });
 });
