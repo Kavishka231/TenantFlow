@@ -40,6 +40,20 @@ as the underlying operation. Runtime users cannot insert, update, or delete
 audit rows. Only organization OWNER and ADMIN roles may read their tenant's
 events, and metadata excludes invitation tokens and email addresses.
 
+## Customer isolation
+
+- every customer belongs to one immutable organization;
+- forced RLS allows organization members to read customer records;
+- only OWNER and ADMIN may insert, update, or delete customers;
+- server actions independently enforce matching organization permissions;
+- customer mutations qualify by both customer ID and organization ID;
+- stale updates and deletes are rejected through positive version checks;
+- database triggers prevent customer ID, organization, creator, and creation timestamp changes;
+- customer audit metadata contains IDs and state changes, not contact details or notes.
+
+Cross-tenant integration tests use the non-owner runtime role and refuse to
+count as executed when real database credentials and Auth identities are absent.
+
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.

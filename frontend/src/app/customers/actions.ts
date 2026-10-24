@@ -61,6 +61,7 @@ export async function createCustomerAction(
 
   const user = await requireUser();
 
+  let customerId: string;
   try {
     await requireOrganizationPermission(
       user.id,
@@ -68,16 +69,21 @@ export async function createCustomerAction(
       "manage_customers",
     );
     const customer = await createCustomerForUser(user.id, result.data);
+    customerId = customer.id;
     revalidatePath(`/organizations/${result.data.organizationId}/customers`);
-    redirect(
-      `/organizations/${result.data.organizationId}/customers/${customer.id}?created=1`,
-    );
   } catch (error) {
     if (error instanceof CustomerConflictError) {
       return { message: error.message, status: "error" };
     }
-    throw error;
+    return {
+      message: "You cannot create a customer in this workspace.",
+      status: "error",
+    };
   }
+
+  redirect(
+    `/organizations/${result.data.organizationId}/customers/${customerId}?created=1`,
+  );
 }
 
 export async function updateCustomerAction(
@@ -143,9 +149,18 @@ export async function deleteCustomerAction(formData: FormData) {
     result.data.organizationId,
     "manage_customers",
   );
-  await deleteCustomerForUser(user.id, result.data);
-  revalidatePath(`/organizations/${result.data.organizationId}/customers`);
+  let status = "deleted";
+  try {
+    await deleteCustomerForUser(user.id, result.data);
+    revalidatePath(`/organizations/${result.data.organizationId}/customers`);
+  } catch (error) {
+    if (error instanceof CustomerConflictError) {
+      status = "conflict";
+    } else {
+      throw error;
+    }
+  }
   redirect(
-    `/organizations/${result.data.organizationId}/customers?customerStatus=deleted`,
+    `/organizations/${result.data.organizationId}/customers?customerStatus=${status}`,
   );
 }

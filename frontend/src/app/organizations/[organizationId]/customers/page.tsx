@@ -68,9 +68,9 @@ async function CustomersContent({
           ) : null}
         </div>
 
-        {first(rawQuery.customerStatus) === "deleted" ? (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">
-            Customer deleted.
+        {first(rawQuery.customerStatus) ? (
+          <p className={cn("rounded-xl border p-4 text-sm", first(rawQuery.customerStatus) === "deleted" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900")} role={first(rawQuery.customerStatus) === "deleted" ? "status" : "alert"}>
+            {first(rawQuery.customerStatus) === "deleted" ? "Customer deleted." : "The customer changed before it could be deleted. Refresh its details and try again."}
           </p>
         ) : null}
 

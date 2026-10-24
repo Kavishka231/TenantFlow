@@ -39,4 +39,25 @@ until development credentials and confirmed test identities are configured.
 5. add invitation resend with rotation and delivery observability;
 6. define the first tenant-owned customer model only after isolation is proven end to end.
 
-Customer management, invoices, Stripe, and other business modules should follow only after tenant isolation is proven end to end.
+Day 4 live integration remains pending because development Supabase credentials
+and test identities have not been configured.
+
+## Day 5 — customer management
+
+- tenant-owned customer schema, indexes, forced RLS, and immutable identity fields
+- authorized create, read, update, and delete operations with optimistic concurrency
+- search, lifecycle filtering, deterministic sorting, and bounded pagination
+- responsive list, create, view, edit, and deletion-confirmation workflows
+- append-only customer activity audit events
+- Vitest, environment-gated RLS, and Playwright coverage
+
+## Recommended Day 6
+
+1. complete the pending live Supabase migration and security verification;
+2. add import/export with strict tenant validation and background job limits;
+3. add customer tags and custom fields with indexed query boundaries;
+4. add cursor pagination if customer volume outgrows offset pagination;
+5. improve audit actor presentation and customer activity timelines;
+6. begin invoices only after customer RLS passes in the real runtime context.
+
+Invoices, Stripe, and other billing modules remain unimplemented.

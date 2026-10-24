@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 3 implements secure team management and auditability on top of the workspace foundation:
+Day 5 implements tenant-isolated customer management on top of the workspace and team foundation. Day 4 live Supabase verification is still pending:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -26,8 +26,13 @@ Day 3 implements secure team management and auditability on top of the workspace
 - last-owner protection for membership updates and deletes
 - organization settings and tenant-isolated, append-only audit events
 - environment-gated RLS and Playwright coverage for team workflows
+- customer records with name, email, phone, company, address, status, and notes
+- manager-only customer creation, updates, and deletion with optimistic version checks
+- member-readable customer lists with search, status filters, sorting, and pagination
+- responsive customer list, create, detail, edit, and delete-confirmation pages
+- customer activity audit events and credential-gated cross-tenant RLS tests
 
-Customer management, invoices, and Stripe billing are not implemented.
+Invoices and Stripe billing are not implemented.
 
 ## Repository structure
 
@@ -117,6 +122,11 @@ Invitation creation, acceptance, membership mutations, and ownership transfer
 also execute through reviewed PostgreSQL functions. Those functions validate
 `auth.uid()`, lock sensitive rows or ownership boundaries, and do not grant
 callers direct access to plaintext tokens or audit mutations.
+
+Customer identifiers and organization identifiers from routes and forms are
+both untrusted. Every customer request reauthorizes workspace membership,
+qualifies database operations by organization, and executes with forced RLS.
+OWNER and ADMIN may mutate customers; MEMBER has read-only customer access.
 
 ## Documentation
 

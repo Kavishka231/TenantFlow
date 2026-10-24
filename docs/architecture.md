@@ -25,6 +25,9 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/team/acceptance.ts`: single-use invitation acceptance boundary
 - `src/lib/team/members.ts`: membership and ownership database operations
 - `src/lib/team/audit.ts`: tenant-authorized audit reads
+- `src/lib/customers/validation.ts`: customer input and mutation validation
+- `src/lib/customers/mutations.ts`: tenant-qualified customer writes
+- `src/lib/customers/list.ts`: bounded customer search, filtering, sorting, and pagination
 
 ## Workspace selection
 
@@ -44,4 +47,16 @@ transaction locks. Audit triggers run in the same transaction as each business
 change. The application role can read authorized audit events but has no audit
 insert, update, or delete grant.
 
-Tenant-owned customer and billing entities remain outside Day 3.
+## Customer management
+
+Customer pages are nested beneath an authorized organization route. Every read
+and mutation carries both customer and organization identity, and the database
+enforces the same tenant relationship through forced RLS. Members can read;
+owners and administrators can create, update, and delete. Updates and deletes
+include a version predicate so stale forms cannot silently overwrite newer work.
+
+Search parameters are parsed into bounded values before queries are built.
+Search values remain SQL parameters, sorting uses an allowlist, and pagination
+is limited to 10, 25, or 50 records.
+
+Invoices and billing entities remain outside Day 5.
