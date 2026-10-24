@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   check,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -27,6 +28,12 @@ export const auditEventType = pgEnum("audit_event_type", [
   "member_removed",
   "ownership_transferred",
   "organization_updated",
+]);
+
+export const customerStatus = pgEnum("customer_status", [
+  "lead",
+  "active",
+  "inactive",
 ]);
 
 export const profiles = pgTable(
@@ -187,12 +194,87 @@ export const auditEvents = pgTable(
   ],
 ).enableRLS();
 
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    email: varchar("email", { length: 320 }),
+    phone: varchar("phone", { length: 32 }),
+    company: varchar("company", { length: 160 }),
+    address: text("address"),
+    status: customerStatus("status").default("lead").notNull(),
+    notes: text("notes"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    version: integer("version").default(1).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("customers_organization_name_idx").on(
+      table.organizationId,
+      table.name,
+    ),
+    index("customers_organization_status_idx").on(
+      table.organizationId,
+      table.status,
+    ),
+    index("customers_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    index("customers_organization_updated_idx").on(
+      table.organizationId,
+      table.updatedAt,
+    ),
+    check(
+      "customers_name_length",
+      sql`char_length(btrim(${table.name})) between 1 and 160`,
+    ),
+    check(
+      "customers_email_length",
+      sql`${table.email} is null or char_length(${table.email}) between 3 and 320`,
+    ),
+    check(
+      "customers_phone_length",
+      sql`${table.phone} is null or char_length(${table.phone}) between 3 and 32`,
+    ),
+    check(
+      "customers_company_length",
+      sql`${table.company} is null or char_length(${table.company}) between 1 and 160`,
+    ),
+    check(
+      "customers_address_length",
+      sql`${table.address} is null or char_length(${table.address}) <= 1000`,
+    ),
+    check(
+      "customers_notes_length",
+      sql`${table.notes} is null or char_length(${table.notes}) <= 5000`,
+    ),
+    check("customers_version_positive", sql`${table.version} > 0`),
+  ],
+).enableRLS();
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   createdOrganizations: many(organizations),
   memberships: many(organizationMembers),
   sentInvitations: many(organizationInvitations, {
     relationName: "invitation_sender",
   }),
+  createdCustomers: many(customers, { relationName: "customer_creator" }),
+  updatedCustomers: many(customers, { relationName: "customer_updater" }),
 }));
 
 export const organizationsRelations = relations(
@@ -205,6 +287,7 @@ export const organizationsRelations = relations(
     members: many(organizationMembers),
     invitations: many(organizationInvitations),
     auditEvents: many(auditEvents),
+    customers: many(customers),
   }),
 );
 
@@ -227,6 +310,23 @@ export const auditEventsRelations = relations(auditEvents, ({ one }) => ({
   organization: one(organizations, {
     fields: [auditEvents.organizationId],
     references: [organizations.id],
+  }),
+}));
+
+export const customersRelations = relations(customers, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [customers.organizationId],
+    references: [organizations.id],
+  }),
+  creator: one(profiles, {
+    fields: [customers.createdBy],
+    references: [profiles.id],
+    relationName: "customer_creator",
+  }),
+  updater: one(profiles, {
+    fields: [customers.updatedBy],
+    references: [profiles.id],
+    relationName: "customer_updater",
   }),
 }));
 
