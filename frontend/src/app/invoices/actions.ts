@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { InvoiceActionState } from "@/lib/invoices/action-state";
+import { decimalToMinorUnits, percentageToBasisPoints } from "@/lib/invoices/money";
 import {
   createInvoiceForUser,
   cancelInvoiceForUser,
@@ -33,20 +34,20 @@ async function requireUser() {
 function invoiceFormValues(formData: FormData) {
   const descriptions = formData.getAll("itemDescription");
   const quantities = formData.getAll("itemQuantity");
-  const unitPrices = formData.getAll("itemUnitPriceMinor");
+  const unitPrices = formData.getAll("itemUnitPrice");
   return {
     currency: formData.get("currency"),
     customerId: formData.get("customerId"),
-    discountMinor: formData.get("discountMinor"),
+    discountMinor: decimalToMinorUnits(formData.get("discount")),
     dueDate: formData.get("dueDate"),
     issueDate: formData.get("issueDate"),
     items: descriptions.map((description, index) => ({
       description,
       quantity: quantities[index],
-      unitPriceMinor: unitPrices[index],
+      unitPriceMinor: decimalToMinorUnits(unitPrices[index] ?? null),
     })),
     notes: formData.get("notes"),
-    taxRateBps: formData.get("taxRateBps"),
+    taxRateBps: percentageToBasisPoints(formData.get("taxRate")),
   };
 }
 
@@ -126,7 +127,7 @@ export async function recordPaymentAction(
   formData: FormData,
 ): Promise<InvoiceActionState> {
   const result = recordPaymentSchema.safeParse({
-    amountMinor: formData.get("amountMinor"),
+    amountMinor: decimalToMinorUnits(formData.get("amount")),
     idempotencyKey: formData.get("idempotencyKey"),
     invoiceId: formData.get("invoiceId"),
     method: formData.get("method"),

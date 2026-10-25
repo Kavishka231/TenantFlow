@@ -50,3 +50,15 @@ export function effectiveInvoiceStatus(
 ) {
   return status === "sent" && dueDate < today ? "overdue" : status;
 }
+
+export function decimalToMinorUnits(value: FormDataEntryValue | null) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return Number.NaN;
+  const [whole, fraction = ""] = normalized.split(".");
+  const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(result) ? result : Number.NaN;
+}
+
+export function percentageToBasisPoints(value: FormDataEntryValue | null) {
+  return decimalToMinorUnits(value);
+}
