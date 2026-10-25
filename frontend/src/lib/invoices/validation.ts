@@ -61,4 +61,36 @@ export const deleteInvoiceSchema = invoiceIdentitySchema.extend({
   version: z.coerce.number().int().positive(),
 });
 
+export const invoiceLifecycleSchema = invoiceIdentitySchema.extend({
+  version: z.coerce.number().int().positive(),
+});
+
+export const paymentMethodSchema = z.enum([
+  "cash",
+  "bank_transfer",
+  "card",
+  "check",
+  "other",
+]);
+
+export const recordPaymentSchema = invoiceIdentitySchema
+  .extend({
+    amountMinor: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    idempotencyKey: z.uuid(),
+    method: paymentMethodSchema,
+    notes: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+      z.string().trim().max(2000).nullable(),
+    ),
+    paymentDate: isoDateSchema,
+    reference: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+      z.string().trim().min(1).max(160).nullable(),
+    ),
+  })
+  .refine((value) => value.paymentDate <= new Date().toISOString().slice(0, 10), {
+    message: "The payment date cannot be in the future.",
+    path: ["paymentDate"],
+  });
+
 export type InvoiceFields = z.infer<typeof invoiceFieldsSchema>;

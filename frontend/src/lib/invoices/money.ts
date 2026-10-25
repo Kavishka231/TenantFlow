@@ -42,3 +42,11 @@ export function formatMinorUnits(amountMinor: number, currency: string) {
     style: "currency",
   }).format(amountMinor / 100);
 }
+
+export function effectiveInvoiceStatus(
+  status: "draft" | "sent" | "partially_paid" | "paid" | "overdue" | "cancelled",
+  dueDate: string,
+  today = new Date().toISOString().slice(0, 10),
+) {
+  return status === "sent" && dueDate < today ? "overdue" : status;
+}

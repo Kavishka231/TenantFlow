@@ -6,13 +6,18 @@ import { redirect } from "next/navigation";
 import type { InvoiceActionState } from "@/lib/invoices/action-state";
 import {
   createInvoiceForUser,
+  cancelInvoiceForUser,
   deleteInvoiceForUser,
   InvoiceConflictError,
+  recordInvoicePaymentForUser,
+  sendInvoiceForUser,
   updateInvoiceForUser,
 } from "@/lib/invoices/mutations";
 import {
   createInvoiceSchema,
   deleteInvoiceSchema,
+  invoiceLifecycleSchema,
+  recordPaymentSchema,
   updateInvoiceSchema,
 } from "@/lib/invoices/validation";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -84,4 +89,63 @@ export async function deleteInvoiceAction(formData: FormData) {
   await deleteInvoiceForUser(user.id, result.data);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
   redirect(`/organizations/${result.data.organizationId}/invoices?invoiceStatus=deleted`);
+}
+
+export async function sendInvoiceAction(formData: FormData) {
+  const result = invoiceLifecycleSchema.safeParse({
+    invoiceId: formData.get("invoiceId"),
+    organizationId: formData.get("organizationId"),
+    version: formData.get("version"),
+  });
+  if (!result.success) redirect("/dashboard");
+  const user = await requireUser();
+  await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
+  await sendInvoiceForUser(user.id, result.data);
+  revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
+  revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
+  redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?sent=1`);
+}
+
+export async function cancelInvoiceAction(formData: FormData) {
+  const result = invoiceLifecycleSchema.safeParse({
+    invoiceId: formData.get("invoiceId"),
+    organizationId: formData.get("organizationId"),
+    version: formData.get("version"),
+  });
+  if (!result.success) redirect("/dashboard");
+  const user = await requireUser();
+  await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
+  await cancelInvoiceForUser(user.id, result.data);
+  revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
+  revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
+  redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?cancelled=1`);
+}
+
+export async function recordPaymentAction(
+  _state: InvoiceActionState,
+  formData: FormData,
+): Promise<InvoiceActionState> {
+  const result = recordPaymentSchema.safeParse({
+    amountMinor: formData.get("amountMinor"),
+    idempotencyKey: formData.get("idempotencyKey"),
+    invoiceId: formData.get("invoiceId"),
+    method: formData.get("method"),
+    notes: formData.get("notes"),
+    organizationId: formData.get("organizationId"),
+    paymentDate: formData.get("paymentDate"),
+    reference: formData.get("reference"),
+  });
+  if (!result.success) {
+    return { message: result.error.issues[0]?.message ?? "Check the payment details.", status: "error" };
+  }
+  const user = await requireUser();
+  try {
+    await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
+    await recordInvoicePaymentForUser(user.id, result.data);
+    revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
+    revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
+  } catch {
+    return { message: "The payment could not be recorded. Check the outstanding balance and try again.", status: "error" };
+  }
+  redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?payment=recorded`);
 }

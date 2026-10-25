@@ -10,11 +10,15 @@ import type {
   createInvoiceSchema,
   deleteInvoiceSchema,
   updateInvoiceSchema,
+  invoiceLifecycleSchema,
+  recordPaymentSchema,
 } from "@/lib/invoices/validation";
 
 type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
 type DeleteInvoiceInput = z.infer<typeof deleteInvoiceSchema>;
+type InvoiceLifecycleInput = z.infer<typeof invoiceLifecycleSchema>;
+type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
 
 export class InvoiceConflictError extends Error {
   constructor(message = "This invoice changed since the page was loaded. Refresh and try again.") {
@@ -144,5 +148,38 @@ export function deleteInvoiceForUser(userId: string, input: DeleteInvoiceInput) 
       .returning({ id: invoices.id });
     if (!invoice) throw new InvoiceConflictError("Only the current draft invoice can be deleted.");
     return invoice;
+  });
+}
+
+export function sendInvoiceForUser(userId: string, input: InvoiceLifecycleInput) {
+  return withUserContext(userId, async (transaction) => {
+    await transaction.execute(sql`
+      select (public.send_invoice(${input.organizationId}::uuid, ${input.invoiceId}::uuid)).id
+    `);
+  });
+}
+
+export function cancelInvoiceForUser(userId: string, input: InvoiceLifecycleInput) {
+  return withUserContext(userId, async (transaction) => {
+    await transaction.execute(sql`
+      select (public.cancel_invoice(${input.organizationId}::uuid, ${input.invoiceId}::uuid)).id
+    `);
+  });
+}
+
+export function recordInvoicePaymentForUser(userId: string, input: RecordPaymentInput) {
+  return withUserContext(userId, async (transaction) => {
+    await transaction.execute(sql`
+      select (public.record_invoice_payment(
+        ${input.organizationId}::uuid,
+        ${input.invoiceId}::uuid,
+        ${input.idempotencyKey}::uuid,
+        ${input.amountMinor}::bigint,
+        ${input.paymentDate}::date,
+        ${input.method}::public.payment_method,
+        ${input.reference},
+        ${input.notes}
+      )).id
+    `);
   });
 }
