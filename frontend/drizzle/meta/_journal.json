@@ -71,6 +71,13 @@
       "when": 1792935067013,
       "tag": "0009_invoice_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792935320926,
+      "tag": "0010_silky_microbe",
+      "breakpoints": true
     }
   ]
 }

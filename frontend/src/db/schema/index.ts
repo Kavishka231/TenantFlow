@@ -39,6 +39,7 @@ export const auditEventType = pgEnum("audit_event_type", [
   "invoice_updated",
   "invoice_sent",
   "invoice_cancelled",
+  "invoice_deleted",
   "payment_recorded",
 ]);
 

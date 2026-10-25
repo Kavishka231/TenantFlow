@@ -29,6 +29,7 @@ const eventLabels = {
   invoice_updated: "Invoice updated",
   invoice_sent: "Invoice sent",
   invoice_cancelled: "Invoice cancelled",
+  invoice_deleted: "Invoice deleted",
   payment_recorded: "Payment recorded",
 } as const;
 
