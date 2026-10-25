@@ -1,5 +1,5 @@
-import type { InvoiceDetail } from "@/lib/invoices/get";
-import { formatMinorUnits } from "@/lib/invoices/money";
+import type { InvoiceDetail } from "./get";
+import { formatMinorUnits } from "./money";
 
 function pdfText(value: string) {
   return value

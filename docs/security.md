@@ -51,6 +51,17 @@ events, and metadata excludes invitation tokens and email addresses.
 - database triggers prevent customer ID, organization, creator, and creation timestamp changes;
 - customer audit metadata contains IDs and state changes, not contact details or notes.
 
+## Invoice and payment isolation
+
+- composite foreign keys keep customers, invoices, items, and payments in one organization;
+- forced RLS permits tenant reads and manager-only draft mutations;
+- lifecycle and paid totals cannot be changed directly by runtime callers;
+- payment recording locks the invoice, enforces idempotency, and rejects overpayments;
+- payment rows cannot be updated or deleted by the runtime role;
+- sent invoices cannot be edited or directly deleted;
+- PDF downloads repeat authorization and return private, non-cacheable responses;
+- audit metadata excludes contact data, notes, references, and financial amounts.
+
 Cross-tenant integration tests use the non-owner runtime role and refuse to
 count as executed when real database credentials and Auth identities are absent.
 

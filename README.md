@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 5 implements tenant-isolated customer management on top of the workspace and team foundation. Day 4 live Supabase verification is still pending:
+Day 6 implements tenant-isolated invoice management and manual payment tracking on top of the workspace, team, and customer foundation. Development migrations are applied through `0013`; restricted-runtime RLS and authenticated browser verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -31,8 +31,14 @@ Day 5 implements tenant-isolated customer management on top of the workspace and
 - member-readable customer lists with search, status filters, sorting, and pagination
 - responsive customer list, create, detail, edit, and delete-confirmation pages
 - customer activity audit events and credential-gated cross-tenant RLS tests
+- organization-scoped invoices, ordered line items, and immutable manual payment records
+- sequential workspace invoice numbers and same-tenant customer constraints
+- integer-minor-unit totals, discounts, basis-point tax, balances, and lifecycle statuses
+- transactional, idempotent payment recording with overpayment prevention
+- responsive invoice CRUD, lifecycle, payment-history, and PDF workflows
+- append-only invoice/payment audit events and credential-gated security tests
 
-Invoices and Stripe billing are not implemented.
+Stripe and automated payment processing are not implemented.
 
 ## Repository structure
 
@@ -127,6 +133,12 @@ Customer identifiers and organization identifiers from routes and forms are
 both untrusted. Every customer request reauthorizes workspace membership,
 qualifies database operations by organization, and executes with forced RLS.
 OWNER and ADMIN may mutate customers; MEMBER has read-only customer access.
+
+Invoice, customer, and organization identifiers are all reauthorized. Composite
+foreign keys enforce that invoice customers, items, and payments remain in the
+same tenant. OWNER and ADMIN manage invoices and record manual payments; MEMBER
+is read-only. Payment insertion is available only through a locked database
+function that validates the caller and outstanding balance.
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createInvoiceSchema } from "./validation";
+import { createInvoiceSchema, recordPaymentSchema } from "./validation";
 
 const baseInvoice = {
   currency: "usd",
@@ -50,5 +50,20 @@ describe("invoice validation", () => {
         items: [{ description: "Bad", quantity: 0, unitPriceMinor: -1 }],
       }).success,
     ).toBe(false);
+  });
+
+  it("validates manual payments and rejects future dates", () => {
+    const payment = {
+      amountMinor: 500,
+      idempotencyKey: "00000000-0000-4000-8000-000000000003",
+      invoiceId: "00000000-0000-4000-8000-000000000004",
+      method: "bank_transfer",
+      notes: null,
+      organizationId: "00000000-0000-4000-8000-000000000001",
+      paymentDate: "2999-01-01",
+      reference: "BANK-1",
+    };
+    expect(recordPaymentSchema.safeParse(payment).success).toBe(false);
+    expect(recordPaymentSchema.safeParse({ ...payment, paymentDate: "2020-01-01" }).success).toBe(true);
   });
 });

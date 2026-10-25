@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateInvoiceTotals, effectiveInvoiceStatus } from "./money";
+import {
+  calculateInvoiceTotals,
+  decimalToMinorUnits,
+  effectiveInvoiceStatus,
+  percentageToBasisPoints,
+} from "./money";
 
 describe("invoice calculations", () => {
   it("calculates quantity, discounts, and basis-point tax in minor units", () => {
@@ -29,5 +34,12 @@ describe("invoice calculations", () => {
   it("derives overdue only from an unpaid sent invoice", () => {
     expect(effectiveInvoiceStatus("sent", "2027-01-01", "2027-01-02")).toBe("overdue");
     expect(effectiveInvoiceStatus("paid", "2027-01-01", "2027-01-02")).toBe("paid");
+  });
+
+  it("parses decimal form values without binary floating-point arithmetic", () => {
+    expect(decimalToMinorUnits("19.99")).toBe(1_999);
+    expect(decimalToMinorUnits("19.9")).toBe(1_990);
+    expect(percentageToBasisPoints("12.50")).toBe(1_250);
+    expect(decimalToMinorUnits("1.999")).toBeNaN();
   });
 });

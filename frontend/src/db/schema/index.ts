@@ -449,7 +449,7 @@ export const paymentRecords = pgTable(
       name: "payment_records_invoice_tenant_fk",
       columns: [table.organizationId, table.invoiceId],
       foreignColumns: [invoices.organizationId, invoices.id],
-    }).onDelete("restrict"),
+    }).onDelete("cascade"),
     unique("payment_records_organization_idempotency_unique").on(
       table.organizationId,
       table.idempotencyKey,
