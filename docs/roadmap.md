@@ -51,13 +51,22 @@ and test identities have not been configured.
 - append-only customer activity audit events
 - Vitest, environment-gated RLS, and Playwright coverage
 
-## Recommended Day 6
+## Day 6 — invoice management and payment tracking
 
-1. complete the pending live Supabase migration and security verification;
-2. add import/export with strict tenant validation and background job limits;
-3. add customer tags and custom fields with indexed query boundaries;
-4. add cursor pagination if customer volume outgrows offset pagination;
-5. improve audit actor presentation and customer activity timelines;
-6. begin invoices only after customer RLS passes in the real runtime context.
+- tenant-owned invoice, line-item, and manual-payment schema with forced RLS
+- secure draft CRUD and same-tenant customer association
+- integer-minor-unit calculations, tax, discounts, balances, and lifecycle states
+- responsive invoice and payment workflows
+- authorized PDF downloads and append-only financial activity events
+- Vitest, credential-gated PostgreSQL RLS, and Playwright coverage
 
-Invoices, Stripe, and other billing modules remain unimplemented.
+## Recommended Day 7
+
+1. provision the restricted runtime database role and disposable Auth identities in CI;
+2. run invoice isolation and browser suites against an isolated Supabase project;
+3. add organization billing-address and invoice-branding settings;
+4. add credit notes and payment reversals as immutable compensating records;
+5. add scheduled overdue reminders without exposing customer data to client jobs;
+6. design Stripe reconciliation only after manual-payment invariants pass continuously.
+
+Stripe and automated payment processing remain unimplemented.

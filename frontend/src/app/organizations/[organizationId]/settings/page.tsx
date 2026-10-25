@@ -25,6 +25,12 @@ const eventLabels = {
   customer_created: "Customer created",
   customer_updated: "Customer updated",
   customer_deleted: "Customer deleted",
+  invoice_created: "Invoice created",
+  invoice_updated: "Invoice updated",
+  invoice_sent: "Invoice sent",
+  invoice_cancelled: "Invoice cancelled",
+  invoice_deleted: "Invoice deleted",
+  payment_recorded: "Payment recorded",
 } as const;
 
 async function OrganizationSettingsContent({

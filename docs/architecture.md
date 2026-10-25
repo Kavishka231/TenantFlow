@@ -28,6 +28,9 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/customers/validation.ts`: customer input and mutation validation
 - `src/lib/customers/mutations.ts`: tenant-qualified customer writes
 - `src/lib/customers/list.ts`: bounded customer search, filtering, sorting, and pagination
+- `src/lib/invoices/mutations.ts`: transactional draft and lifecycle operations
+- `src/lib/invoices/money.ts`: integer-minor-unit financial calculations
+- `src/lib/invoices/list.ts`: bounded invoice querying and pagination
 
 ## Workspace selection
 
@@ -59,4 +62,14 @@ Search parameters are parsed into bounded values before queries are built.
 Search values remain SQL parameters, sorting uses an allowlist, and pagination
 is limited to 10, 25, or 50 records.
 
-Invoices and billing entities remain outside Day 5.
+## Invoice management
+
+Invoices are tenant-owned aggregates containing ordered line items and immutable
+manual payment records. Creation locks the organization invoice-number boundary;
+updates replace draft items atomically with optimistic version checks. Sending,
+cancellation, and payment recording use PostgreSQL functions that lock the
+invoice and validate the authenticated organization role.
+
+Money values are integer minor units and tax rates are integer basis points.
+Effective overdue status is derived from the due date. PDF downloads are
+generated only after server-side workspace authorization and are never cached.

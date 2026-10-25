@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Building2, ContactRound, LogOut, Plus, ShieldCheck, Users } from "lucide-react";
+import { Building2, ContactRound, FileText, LogOut, Plus, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -82,7 +82,7 @@ async function DashboardContent({
               </Link>
             </div>
             <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <article className="rounded-2xl border bg-white p-6 shadow-sm md:col-span-2">
+              <article className="rounded-2xl border bg-white p-6 shadow-sm">
                 <ContactRound className="size-6 text-indigo-600" aria-hidden="true" />
                 <h2 className="mt-4 font-semibold">Customer management</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -94,6 +94,14 @@ async function DashboardContent({
                 >
                   Open customers
                 </Link>
+              </article>
+              <article className="rounded-2xl border bg-white p-6 shadow-sm">
+                <FileText className="size-6 text-indigo-600" aria-hidden="true" />
+                <h2 className="mt-4 font-semibold">Invoice management</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Create invoices, track balances, and record manual payments securely.
+                </p>
+                <Link href={`/organizations/${activeOrganization.id}/invoices`} className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Open invoices</Link>
               </article>
               <article className="rounded-2xl border bg-white p-6 shadow-sm">
                 <ShieldCheck className="size-6 text-emerald-600" aria-hidden="true" />

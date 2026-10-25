@@ -10,6 +10,9 @@ TenantFlow uses version-controlled Drizzle schemas and SQL migrations in `fronte
 - `organization_invitations` stores normalized recipients, intended non-owner roles, expiry and terminal state, and unique SHA-256 token hashes.
 - `audit_events` stores append-only tenant events with actor, event type, timestamp, and non-sensitive JSON metadata.
 - `customers` stores tenant-owned contact, company, address, lifecycle status, notes, actor attribution, and an optimistic concurrency version.
+- `invoices` stores tenant-scoped numbering, customer association, dates, lifecycle, integer-minor-unit totals, and optimistic versions.
+- `invoice_items` stores ordered descriptions, integer quantities, prices, and constraint-verified line totals.
+- `payment_records` stores immutable, idempotent manual payments linked through composite tenant foreign keys.
 
 Every table has Row-Level Security enabled and forced. Profiles are self-accessible. Organization and membership access is resolved through security-definer helper functions with a fixed search path, preventing recursive RLS evaluation.
 
@@ -24,6 +27,11 @@ Migrations `0006` and `0007` add the customer model, organization-scoped
 indexes, forced RLS policies, immutable identity/version triggers, and
 transactional customer-created, customer-updated, and customer-deleted audit
 events. Customer contact information is never copied into audit metadata.
+
+Migrations `0008` through `0013` add invoices, items, payments, composite tenant
+foreign keys, forced RLS, lifecycle functions, serialized payment recording,
+audit triggers, and safe workspace cascading behavior. Financial values use
+bounded integers rather than floating-point database types.
 
 ## Connection roles
 
@@ -47,3 +55,8 @@ Four confirmed Supabase test-user IDs are required in `.env.test.local`: OWNER, 
 The customer suite additionally verifies member read-only access, manager CRUD,
 cross-tenant read and write denial, immutable organization ownership, automatic
 version increments, and customer audit integrity.
+
+The invoice suite verifies member read-only access, cross-tenant denial,
+manager-only lifecycle operations, idempotent payments, overpayment prevention,
+status changes, and audit visibility. It refuses to run unless the runtime role
+is non-owner, non-superuser, non-`BYPASSRLS`, and inherits `authenticated`.

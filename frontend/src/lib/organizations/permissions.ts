@@ -10,6 +10,8 @@ export const organizationPermissions = [
   "delete_organization",
   "read_customers",
   "manage_customers",
+  "read_invoices",
+  "manage_invoices",
 ] as const;
 
 export type OrganizationPermission = (typeof organizationPermissions)[number];
@@ -25,8 +27,10 @@ const permissionsByRole: Record<
     "manage_members",
     "read_customers",
     "manage_customers",
+    "read_invoices",
+    "manage_invoices",
   ]),
-  member: new Set(["read_workspace", "read_customers"]),
+  member: new Set(["read_workspace", "read_customers", "read_invoices"]),
 };
 
 export function roleHasPermission(
