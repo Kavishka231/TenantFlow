@@ -1,6 +1,9 @@
 import { relations, sql } from "drizzle-orm";
 import {
   check,
+  bigint,
+  date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -9,6 +12,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
@@ -31,12 +35,34 @@ export const auditEventType = pgEnum("audit_event_type", [
   "customer_created",
   "customer_updated",
   "customer_deleted",
+  "invoice_created",
+  "invoice_updated",
+  "invoice_sent",
+  "invoice_cancelled",
+  "payment_recorded",
 ]);
 
 export const customerStatus = pgEnum("customer_status", [
   "lead",
   "active",
   "inactive",
+]);
+
+export const invoiceStatus = pgEnum("invoice_status", [
+  "draft",
+  "sent",
+  "partially_paid",
+  "paid",
+  "overdue",
+  "cancelled",
+]);
+
+export const paymentMethod = pgEnum("payment_method", [
+  "cash",
+  "bank_transfer",
+  "card",
+  "check",
+  "other",
 ]);
 
 export const profiles = pgTable(
@@ -242,6 +268,10 @@ export const customers = pgTable(
       table.organizationId,
       table.updatedAt,
     ),
+    unique("customers_organization_id_id_unique").on(
+      table.organizationId,
+      table.id,
+    ),
     check(
       "customers_name_length",
       sql`char_length(btrim(${table.name})) between 1 and 160`,
@@ -270,6 +300,174 @@ export const customers = pgTable(
   ],
 ).enableRLS();
 
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").notNull(),
+    invoiceNumber: varchar("invoice_number", { length: 64 }).notNull(),
+    numberSequence: integer("number_sequence").notNull(),
+    status: invoiceStatus("status").default("draft").notNull(),
+    currency: varchar("currency", { length: 3 }).notNull(),
+    issueDate: date("issue_date", { mode: "string" }).notNull(),
+    dueDate: date("due_date", { mode: "string" }).notNull(),
+    notes: text("notes"),
+    discountMinor: bigint("discount_minor", { mode: "number" })
+      .default(0)
+      .notNull(),
+    taxRateBps: integer("tax_rate_bps").default(0).notNull(),
+    subtotalMinor: bigint("subtotal_minor", { mode: "number" })
+      .default(0)
+      .notNull(),
+    taxMinor: bigint("tax_minor", { mode: "number" }).default(0).notNull(),
+    totalMinor: bigint("total_minor", { mode: "number" }).default(0).notNull(),
+    paidMinor: bigint("paid_minor", { mode: "number" }).default(0).notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    version: integer("version").default(1).notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("invoices_organization_number_unique").on(
+      table.organizationId,
+      table.invoiceNumber,
+    ),
+    unique("invoices_organization_sequence_unique").on(
+      table.organizationId,
+      table.numberSequence,
+    ),
+    unique("invoices_organization_id_id_unique").on(
+      table.organizationId,
+      table.id,
+    ),
+    foreignKey({
+      name: "invoices_customer_tenant_fk",
+      columns: [table.organizationId, table.customerId],
+      foreignColumns: [customers.organizationId, customers.id],
+    }).onDelete("restrict"),
+    index("invoices_organization_status_due_idx").on(
+      table.organizationId,
+      table.status,
+      table.dueDate,
+    ),
+    index("invoices_organization_customer_idx").on(
+      table.organizationId,
+      table.customerId,
+    ),
+    index("invoices_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    check("invoices_number_sequence_positive", sql`${table.numberSequence} > 0`),
+    check("invoices_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check("invoices_due_date_valid", sql`${table.dueDate} >= ${table.issueDate}`),
+    check("invoices_notes_length", sql`${table.notes} is null or char_length(${table.notes}) <= 5000`),
+    check("invoices_discount_nonnegative", sql`${table.discountMinor} >= 0`),
+    check("invoices_tax_rate_range", sql`${table.taxRateBps} between 0 and 10000`),
+    check("invoices_subtotal_nonnegative", sql`${table.subtotalMinor} >= 0`),
+    check("invoices_tax_nonnegative", sql`${table.taxMinor} >= 0`),
+    check("invoices_total_nonnegative", sql`${table.totalMinor} >= 0`),
+    check("invoices_paid_valid", sql`${table.paidMinor} between 0 and ${table.totalMinor}`),
+    check("invoices_discount_not_above_subtotal", sql`${table.discountMinor} <= ${table.subtotalMinor}`),
+    check("invoices_version_positive", sql`${table.version} > 0`),
+  ],
+).enableRLS();
+
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    invoiceId: uuid("invoice_id").notNull(),
+    description: varchar("description", { length: 500 }).notNull(),
+    quantity: integer("quantity").notNull(),
+    unitPriceMinor: bigint("unit_price_minor", { mode: "number" }).notNull(),
+    lineTotalMinor: bigint("line_total_minor", { mode: "number" }).notNull(),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "invoice_items_invoice_tenant_fk",
+      columns: [table.organizationId, table.invoiceId],
+      foreignColumns: [invoices.organizationId, invoices.id],
+    }).onDelete("cascade"),
+    unique("invoice_items_invoice_position_unique").on(
+      table.invoiceId,
+      table.position,
+    ),
+    index("invoice_items_organization_invoice_idx").on(
+      table.organizationId,
+      table.invoiceId,
+    ),
+    check("invoice_items_description_length", sql`char_length(btrim(${table.description})) between 1 and 500`),
+    check("invoice_items_quantity_range", sql`${table.quantity} between 1 and 1000000`),
+    check("invoice_items_unit_price_range", sql`${table.unitPriceMinor} between 0 and 1000000000`),
+    check("invoice_items_line_total_valid", sql`${table.lineTotalMinor} = ${table.quantity}::bigint * ${table.unitPriceMinor}`),
+    check("invoice_items_position_positive", sql`${table.position} > 0`),
+  ],
+).enableRLS();
+
+export const paymentRecords = pgTable(
+  "payment_records",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    invoiceId: uuid("invoice_id").notNull(),
+    idempotencyKey: uuid("idempotency_key").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    paymentDate: date("payment_date", { mode: "string" }).notNull(),
+    method: paymentMethod("method").notNull(),
+    reference: varchar("reference", { length: 160 }),
+    notes: text("notes"),
+    recordedBy: uuid("recorded_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "payment_records_invoice_tenant_fk",
+      columns: [table.organizationId, table.invoiceId],
+      foreignColumns: [invoices.organizationId, invoices.id],
+    }).onDelete("restrict"),
+    unique("payment_records_organization_idempotency_unique").on(
+      table.organizationId,
+      table.idempotencyKey,
+    ),
+    index("payment_records_invoice_date_idx").on(
+      table.invoiceId,
+      table.paymentDate,
+      table.createdAt,
+    ),
+    index("payment_records_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+    check("payment_records_amount_positive", sql`${table.amountMinor} > 0`),
+    check("payment_records_reference_length", sql`${table.reference} is null or char_length(${table.reference}) between 1 and 160`),
+    check("payment_records_notes_length", sql`${table.notes} is null or char_length(${table.notes}) <= 2000`),
+  ],
+).enableRLS();
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   createdOrganizations: many(organizations),
   memberships: many(organizationMembers),
@@ -278,6 +476,9 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   }),
   createdCustomers: many(customers, { relationName: "customer_creator" }),
   updatedCustomers: many(customers, { relationName: "customer_updater" }),
+  createdInvoices: many(invoices, { relationName: "invoice_creator" }),
+  updatedInvoices: many(invoices, { relationName: "invoice_updater" }),
+  recordedPayments: many(paymentRecords),
 }));
 
 export const organizationsRelations = relations(
@@ -291,6 +492,9 @@ export const organizationsRelations = relations(
     invitations: many(organizationInvitations),
     auditEvents: many(auditEvents),
     customers: many(customers),
+    invoices: many(invoices),
+    invoiceItems: many(invoiceItems),
+    paymentRecords: many(paymentRecords),
   }),
 );
 
@@ -330,6 +534,55 @@ export const customersRelations = relations(customers, ({ one }) => ({
     fields: [customers.updatedBy],
     references: [profiles.id],
     relationName: "customer_updater",
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [invoices.organizationId],
+    references: [organizations.id],
+  }),
+  customer: one(customers, {
+    fields: [invoices.customerId],
+    references: [customers.id],
+  }),
+  creator: one(profiles, {
+    fields: [invoices.createdBy],
+    references: [profiles.id],
+    relationName: "invoice_creator",
+  }),
+  updater: one(profiles, {
+    fields: [invoices.updatedBy],
+    references: [profiles.id],
+    relationName: "invoice_updater",
+  }),
+  items: many(invoiceItems),
+  payments: many(paymentRecords),
+}));
+
+export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [invoiceItems.invoiceId],
+    references: [invoices.id],
+  }),
+  organization: one(organizations, {
+    fields: [invoiceItems.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const paymentRecordsRelations = relations(paymentRecords, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [paymentRecords.invoiceId],
+    references: [invoices.id],
+  }),
+  organization: one(organizations, {
+    fields: [paymentRecords.organizationId],
+    references: [organizations.id],
+  }),
+  recorder: one(profiles, {
+    fields: [paymentRecords.recordedBy],
+    references: [profiles.id],
   }),
 }));
 

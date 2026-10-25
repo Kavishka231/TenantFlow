@@ -32,4 +32,16 @@ describe("organization role permissions", () => {
       "admin",
     ]);
   });
+
+  it("allows members to read invoices but only managers to mutate them", () => {
+    expect(rolesWithPermission("read_invoices")).toEqual([
+      "owner",
+      "admin",
+      "member",
+    ]);
+    expect(rolesWithPermission("manage_invoices")).toEqual([
+      "owner",
+      "admin",
+    ]);
+  });
 });
