@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Building2, ContactRound, FileText, LogOut, Plus, ShieldCheck, Users } from "lucide-react";
+import { Building2, ContactRound, CreditCard, FileText, LogOut, Plus, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -95,6 +95,12 @@ async function DashboardContent({
                   Open customers
                 </Link>
               </article>
+              {activeOrganization.role === "owner" ? <article className="rounded-2xl border bg-white p-6 shadow-sm">
+                <CreditCard className="size-6 text-indigo-600" aria-hidden="true" />
+                <h2 className="mt-4 font-semibold">Subscription billing</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Manage this workspace&apos;s TenantFlow plan in Stripe Test Mode.</p>
+                <Link href={`/organizations/${activeOrganization.id}/billing`} className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Manage billing</Link>
+              </article> : null}
               <article className="rounded-2xl border bg-white p-6 shadow-sm">
                 <FileText className="size-6 text-indigo-600" aria-hidden="true" />
                 <h2 className="mt-4 font-semibold">Invoice management</h2>

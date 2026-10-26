@@ -127,6 +127,13 @@
       "when": 1793006388063,
       "tag": "0017_stripe_webhook_processing",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793006555951,
+      "tag": "0018_subscription_entitlements",
+      "breakpoints": true
     }
   ]
 }
