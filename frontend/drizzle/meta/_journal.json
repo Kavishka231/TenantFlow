@@ -134,6 +134,13 @@
       "when": 1793006555951,
       "tag": "0018_subscription_entitlements",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793006694108,
+      "tag": "0019_restrict_stripe_webhook_role",
+      "breakpoints": true
     }
   ]
 }

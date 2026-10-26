@@ -2,7 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 
-import { withSystemTransaction } from "@/db/client";
+import { withWebhookTransaction } from "@/db/client";
 import { planForPriceId } from "@/lib/billing/stripe-api";
 import { payloadSha256, stripeSubscriptionEventSchema, unixTimestamp } from "@/lib/billing/webhook";
 
@@ -14,7 +14,7 @@ export async function processStripeWebhookPayload(payload: string) {
   const organizationId = subscription.metadata.tenantflowOrganizationId;
   if (!planKey || !organizationId) throw new Error("Stripe subscription cannot be mapped to a TenantFlow plan.");
 
-  const result = await withSystemTransaction((transaction) => transaction.execute(sql`
+  const result = await withWebhookTransaction((transaction) => transaction.execute(sql`
     select public.process_stripe_subscription_event(
       ${event.id}::text,
       ${event.type}::text,

@@ -65,6 +65,17 @@ events, and metadata excludes invitation tokens and email addresses.
 Cross-tenant integration tests use the non-owner runtime role and refuse to
 count as executed when real database credentials and Auth identities are absent.
 
+## Stripe subscription isolation
+
+- only OWNER has `manage_billing`; ADMIN and MEMBER cannot read Stripe mappings;
+- Checkout receives a server-mapped recurring Price ID, never a client price;
+- only `sk_test_` keys are accepted and live-mode responses/events fail closed;
+- webhook signatures cover the raw request body and expire after five minutes;
+- event IDs are unique and older events cannot overwrite newer state;
+- customer mappings are cross-checked before subscription changes;
+- normal `authenticated` connections cannot execute webhook synchronization;
+- a dedicated login inheriting only `tenantflow_stripe_webhook` is required.
+
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.

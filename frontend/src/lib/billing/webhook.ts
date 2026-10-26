@@ -7,6 +7,14 @@ const stripeStatuses = [
   "canceled", "unpaid", "paused",
 ] as const;
 
+export const supportedStripeSubscriptionEvents = [
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "customer.subscription.paused",
+  "customer.subscription.resumed",
+] as const;
+
 const subscriptionObjectSchema = z.object({
   id: z.string().regex(/^sub_[A-Za-z0-9]+$/),
   customer: z.string().regex(/^cus_[A-Za-z0-9]+$/),
@@ -23,17 +31,15 @@ const subscriptionObjectSchema = z.object({
 
 export const stripeSubscriptionEventSchema = z.object({
   id: z.string().regex(/^evt_[A-Za-z0-9]+$/),
-  type: z.enum([
-    "customer.subscription.created",
-    "customer.subscription.updated",
-    "customer.subscription.deleted",
-    "customer.subscription.paused",
-    "customer.subscription.resumed",
-  ]),
+  type: z.enum(supportedStripeSubscriptionEvents),
   created: z.number().int().nonnegative(),
   livemode: z.literal(false),
   data: z.object({ object: subscriptionObjectSchema }),
 });
+
+export function isSupportedStripeSubscriptionEvent(type: unknown) {
+  return z.enum(supportedStripeSubscriptionEvents).safeParse(type).success;
+}
 
 export function verifyStripeSignature(
   payload: string,

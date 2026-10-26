@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { payloadSha256, stripeSubscriptionEventSchema, verifyStripeSignature } from "./webhook";
+import { isSupportedStripeSubscriptionEvent, payloadSha256, stripeSubscriptionEventSchema, verifyStripeSignature } from "./webhook";
 
 describe("Stripe webhook security", () => {
   it("accepts a current HMAC and rejects tampering", () => {
@@ -32,5 +32,10 @@ describe("Stripe webhook security", () => {
   it("hashes payloads deterministically", () => {
     expect(payloadSha256("tenantflow")).toMatch(/^[a-f0-9]{64}$/);
     expect(payloadSha256("tenantflow")).toBe(payloadSha256("tenantflow"));
+  });
+
+  it("ignores unrelated signed event types", () => {
+    expect(isSupportedStripeSubscriptionEvent("invoice.paid")).toBe(false);
+    expect(isSupportedStripeSubscriptionEvent("customer.subscription.updated")).toBe(true);
   });
 });

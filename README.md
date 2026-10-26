@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 6 implements tenant-isolated invoice management and manual payment tracking on top of the workspace, team, and customer foundation. Development migrations are applied through `0013`; restricted-runtime RLS and authenticated browser verification remain credential-dependent:
+Day 7 adds organization subscription billing with Stripe Test Mode. Development migrations are applied through `0019`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -37,8 +37,13 @@ Day 6 implements tenant-isolated invoice management and manual payment tracking 
 - transactional, idempotent payment recording with overpayment prevention
 - responsive invoice CRUD, lifecycle, payment-history, and PDF workflows
 - append-only invoice/payment audit events and credential-gated security tests
+- organization subscription plans, Stripe customer mappings, and forced-RLS billing records
+- owner-only Checkout and Customer Portal sessions using server-owned test Price IDs
+- signed, idempotent webhook synchronization through a dedicated database role
+- pricing and billing dashboards with transactional customer and invoice plan limits
+- credential-gated billing RLS and Playwright coverage
 
-Stripe and automated payment processing are not implemented.
+TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
 ## Repository structure
 
@@ -73,9 +78,29 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 DATABASE_URL=postgresql://application_user:password@host:5432/postgres?sslmode=require
 MIGRATION_DATABASE_URL=postgresql://migration_user:password@host:5432/postgres?sslmode=require
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
+STRIPE_STARTER_PRICE_ID=price_replace_me
+STRIPE_GROWTH_PRICE_ID=price_replace_me
+STRIPE_WEBHOOK_DATABASE_URL=postgresql://stripe_webhook_user:password@host:5432/postgres?sslmode=require
 ```
 
 Only the three `NEXT_PUBLIC_` values are browser-safe. Both database URLs are server-only. Do not use a table owner, superuser, or `BYPASSRLS` role for `DATABASE_URL`. Do not expose a Supabase service-role key.
+
+For webhooks, create a dedicated login (with a generated password) and grant it
+only the capability created by migration `0019`:
+
+```sql
+CREATE ROLE tenantflow_stripe_webhook_login LOGIN PASSWORD 'generated-secret'
+  NOSUPERUSER NOBYPASSRLS INHERIT;
+GRANT tenantflow_stripe_webhook TO tenantflow_stripe_webhook_login;
+```
+
+Set its connection string as `STRIPE_WEBHOOK_DATABASE_URL`. In the Stripe Test
+Mode dashboard, create recurring USD Prices matching Starter ($29) and Growth
+($79), configure the Customer Portal for plan changes/cancellation, and point a
+webhook endpoint at `/api/stripe/webhook` for `customer.subscription.created`,
+`updated`, `deleted`, `paused`, and `resumed` events.
 
 In Supabase Auth URL configuration, set the local Site URL to `http://localhost:3000` and allow `http://localhost:3000/auth/callback` as a redirect URL. Keep email/password sign-ups enabled if registration is required.
 
@@ -139,6 +164,11 @@ foreign keys enforce that invoice customers, items, and payments remain in the
 same tenant. OWNER and ADMIN manage invoices and record manual payments; MEMBER
 is read-only. Payment insertion is available only through a locked database
 function that validates the caller and outstanding balance.
+
+Only an organization OWNER can manage subscription billing. Checkout uses
+server-selected Price IDs. Stripe webhooks are verified against the raw body
+before a dedicated `tenantflow_stripe_webhook` database capability synchronizes
+state; normal authenticated connections cannot execute that function.
 
 ## Documentation
 

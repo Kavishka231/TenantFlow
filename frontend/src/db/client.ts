@@ -9,6 +9,7 @@ import { getServerEnv } from "@/lib/env/server";
 
 const globalForDatabase = globalThis as unknown as {
   tenantFlowSql?: ReturnType<typeof postgres>;
+  tenantFlowWebhookSql?: ReturnType<typeof postgres>;
 };
 
 function getSqlClient() {
@@ -60,14 +61,30 @@ export async function withUserContext<T>(
   });
 }
 
-/**
- * Runs a server-verified system operation without end-user JWT claims. Keep
- * callers limited to cryptographically authenticated integrations such as the
- * Stripe webhook; tenant mutations must still go through constrained database
- * functions rather than direct table writes.
- */
-export function withSystemTransaction<T>(
+export async function withWebhookTransaction<T>(
   operation: (transaction: DatabaseTransaction) => Promise<T>,
 ) {
-  return getDatabase().transaction(operation);
+  const webhookUrl = z.string().startsWith("postgresql://").parse(
+    process.env.STRIPE_WEBHOOK_DATABASE_URL,
+  );
+  const client = globalForDatabase.tenantFlowWebhookSql ?? postgres(webhookUrl, {
+    max: 2,
+    prepare: false,
+  });
+  if (process.env.NODE_ENV !== "production") globalForDatabase.tenantFlowWebhookSql = client;
+  const database = drizzle({ client });
+  return database.transaction(async (transaction) => {
+    const verification = await transaction.execute(sql`
+      select
+        pg_has_role(current_user, 'tenantflow_stripe_webhook', 'member') as capability,
+        rolbypassrls as "bypassRls",
+        rolsuper as superuser
+      from pg_roles where rolname = current_user
+    `);
+    const role = verification[0] as { capability?: boolean; bypassRls?: boolean; superuser?: boolean } | undefined;
+    if (!role?.capability || role.bypassRls || role.superuser) {
+      throw new Error("Stripe webhook database role is not safely configured.");
+    }
+    return operation(transaction);
+  });
 }

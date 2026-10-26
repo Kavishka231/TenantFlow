@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getStripeEnv } from "@/lib/billing/env";
 import { processStripeWebhookPayload } from "@/lib/billing/webhook-processing";
-import { verifyStripeSignature } from "@/lib/billing/webhook";
-
-export const runtime = "nodejs";
+import { isSupportedStripeSubscriptionEvent, verifyStripeSignature } from "@/lib/billing/webhook";
 
 export async function POST(request: Request) {
   const payload = await request.text();
@@ -13,6 +11,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
   try {
+    const envelope = JSON.parse(payload) as { type?: unknown };
+    if (!isSupportedStripeSubscriptionEvent(envelope.type)) {
+      return NextResponse.json({ received: true, processed: false });
+    }
     const processed = await processStripeWebhookPayload(payload);
     return NextResponse.json({ received: true, processed });
   } catch (error) {

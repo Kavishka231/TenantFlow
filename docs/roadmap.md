@@ -60,13 +60,19 @@ and test identities have not been configured.
 - authorized PDF downloads and append-only financial activity events
 - Vitest, credential-gated PostgreSQL RLS, and Playwright coverage
 
-## Recommended Day 7
+## Day 7 — Stripe subscription billing
 
-1. provision the restricted runtime database role and disposable Auth identities in CI;
-2. run invoice isolation and browser suites against an isolated Supabase project;
-3. add organization billing-address and invoice-branding settings;
-4. add credit notes and payment reversals as immutable compensating records;
-5. add scheduled overdue reminders without exposing customer data to client jobs;
-6. design Stripe reconciliation only after manual-payment invariants pass continuously.
+- tenant-isolated subscription plans, Stripe mappings, and subscription state
+- owner-only test-mode Checkout and Customer Portal lifecycle management
+- signed, idempotent webhook synchronization and out-of-order protection
+- pricing and billing UI with plan capacity enforcement
+- credential-gated RLS, webhook, and Playwright coverage
 
-Stripe and automated payment processing remain unimplemented.
+## Recommended Day 8
+
+1. provision the dedicated webhook login and restricted runtime role in CI;
+2. run Stripe CLI webhook and Checkout suites against an isolated test project;
+3. add metered usage reporting only if product requirements demand it;
+4. add billing notification delivery and reconciliation observability;
+5. design grace-period and dunning policy around Stripe's authoritative status;
+6. add organization billing contacts without mixing them with invoice customers.
