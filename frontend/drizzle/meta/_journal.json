@@ -141,6 +141,13 @@
       "when": 1793006694108,
       "tag": "0019_restrict_stripe_webhook_role",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793007781210,
+      "tag": "0020_brainy_pride",
+      "breakpoints": true
     }
   ]
 }

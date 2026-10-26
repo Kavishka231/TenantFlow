@@ -385,6 +385,10 @@ export const invoices = pgTable(
       table.organizationId,
       table.createdAt,
     ),
+    index("invoices_organization_issue_date_idx").on(
+      table.organizationId,
+      table.issueDate,
+    ),
     check("invoices_number_sequence_positive", sql`${table.numberSequence} > 0`),
     check("invoices_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
     check("invoices_due_date_valid", sql`${table.dueDate} >= ${table.issueDate}`),
@@ -474,6 +478,10 @@ export const paymentRecords = pgTable(
     index("payment_records_organization_created_idx").on(
       table.organizationId,
       table.createdAt,
+    ),
+    index("payment_records_organization_payment_date_idx").on(
+      table.organizationId,
+      table.paymentDate,
     ),
     check("payment_records_amount_positive", sql`${table.amountMinor} > 0`),
     check("payment_records_reference_length", sql`${table.reference} is null or char_length(${table.reference}) between 1 and 160`),
