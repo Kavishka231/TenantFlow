@@ -12,6 +12,7 @@ export const organizationPermissions = [
   "manage_customers",
   "read_invoices",
   "manage_invoices",
+  "read_analytics",
   "read_billing",
   "manage_billing",
 ] as const;
@@ -31,8 +32,9 @@ const permissionsByRole: Record<
     "manage_customers",
     "read_invoices",
     "manage_invoices",
+    "read_analytics",
   ]),
-  member: new Set(["read_workspace", "read_customers", "read_invoices"]),
+  member: new Set(["read_workspace", "read_customers", "read_invoices", "read_analytics"]),
 };
 
 export function roleHasPermission(

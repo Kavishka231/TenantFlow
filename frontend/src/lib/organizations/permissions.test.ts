@@ -49,4 +49,12 @@ describe("organization role permissions", () => {
     expect(rolesWithPermission("read_billing")).toEqual(["owner"]);
     expect(rolesWithPermission("manage_billing")).toEqual(["owner"]);
   });
+
+  it("allows every workspace role to read analytics", () => {
+    expect(rolesWithPermission("read_analytics")).toEqual([
+      "owner",
+      "admin",
+      "member",
+    ]);
+  });
 });
