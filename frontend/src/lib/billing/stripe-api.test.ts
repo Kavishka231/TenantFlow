@@ -42,4 +42,20 @@ describe("Stripe API adapter", () => {
       planKey: "growth",
     })).rejects.toThrow("Stripe could not process");
   });
+
+  it("creates an on-demand Customer Portal session", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: "bps_123", livemode: false, url: "https://billing.stripe.com/p/session/test",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { createPortalSession } = await import("./stripe-api");
+    await createPortalSession({
+      appUrl: "http://localhost:3000",
+      customerId: "cus_Example123",
+      organizationId: "00000000-0000-4000-8000-000000000001",
+    });
+    const body = new URLSearchParams(fetchMock.mock.calls[0]?.[1]?.body as string);
+    expect(body.get("customer")).toBe("cus_Example123");
+    expect(body.get("return_url")).toContain("/billing");
+  });
 });
