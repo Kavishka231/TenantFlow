@@ -120,6 +120,13 @@
       "when": 1793006203740,
       "tag": "0016_stripe_checkout_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793006388063,
+      "tag": "0017_stripe_webhook_processing",
+      "breakpoints": true
     }
   ]
 }

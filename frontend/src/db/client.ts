@@ -59,3 +59,15 @@ export async function withUserContext<T>(
     return operation(transaction);
   });
 }
+
+/**
+ * Runs a server-verified system operation without end-user JWT claims. Keep
+ * callers limited to cryptographically authenticated integrations such as the
+ * Stripe webhook; tenant mutations must still go through constrained database
+ * functions rather than direct table writes.
+ */
+export function withSystemTransaction<T>(
+  operation: (transaction: DatabaseTransaction) => Promise<T>,
+) {
+  return getDatabase().transaction(operation);
+}
