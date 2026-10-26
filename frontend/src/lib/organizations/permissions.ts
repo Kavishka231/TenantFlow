@@ -12,6 +12,8 @@ export const organizationPermissions = [
   "manage_customers",
   "read_invoices",
   "manage_invoices",
+  "read_billing",
+  "manage_billing",
 ] as const;
 
 export type OrganizationPermission = (typeof organizationPermissions)[number];

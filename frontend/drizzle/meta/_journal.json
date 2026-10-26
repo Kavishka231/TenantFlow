@@ -99,6 +99,20 @@
       "when": 1792935753294,
       "tag": "0013_invoice_audit_cascade",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793005802838,
+      "tag": "0014_premium_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793005838495,
+      "tag": "0015_skinny_whirlwind",
+      "breakpoints": true
     }
   ]
 }

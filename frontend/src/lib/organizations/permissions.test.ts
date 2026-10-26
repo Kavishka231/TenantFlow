@@ -44,4 +44,9 @@ describe("organization role permissions", () => {
       "admin",
     ]);
   });
+
+  it("reserves subscription billing for owners", () => {
+    expect(rolesWithPermission("read_billing")).toEqual(["owner"]);
+    expect(rolesWithPermission("manage_billing")).toEqual(["owner"]);
+  });
 });

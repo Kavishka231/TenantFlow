@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   check,
   bigint,
+  boolean,
   date,
   foreignKey,
   index,
@@ -64,6 +65,17 @@ export const paymentMethod = pgEnum("payment_method", [
   "card",
   "check",
   "other",
+]);
+
+export const subscriptionStatus = pgEnum("subscription_status", [
+  "incomplete",
+  "incomplete_expired",
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "unpaid",
+  "paused",
 ]);
 
 export const profiles = pgTable(
@@ -469,6 +481,134 @@ export const paymentRecords = pgTable(
   ],
 ).enableRLS();
 
+export const subscriptionPlans = pgTable(
+  "subscription_plans",
+  {
+    id: uuid("id").primaryKey(),
+    key: varchar("key", { length: 32 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
+    description: varchar("description", { length: 500 }).notNull(),
+    monthlyPriceMinor: bigint("monthly_price_minor", { mode: "number" })
+      .notNull(),
+    currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+    features: jsonb("features").$type<string[]>().default([]).notNull(),
+    limits: jsonb("limits")
+      .$type<{ maxCustomers: number | null; maxInvoices: number | null }>()
+      .notNull(),
+    active: boolean("active").default(true).notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("subscription_plans_key_unique").on(table.key),
+    index("subscription_plans_active_sort_idx").on(table.active, table.sortOrder),
+    check("subscription_plans_key_format", sql`${table.key} ~ '^[a-z][a-z0-9_]*$'`),
+    check("subscription_plans_price_nonnegative", sql`${table.monthlyPriceMinor} >= 0`),
+    check("subscription_plans_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check("subscription_plans_sort_positive", sql`${table.sortOrder} > 0`),
+  ],
+).enableRLS();
+
+export const stripeCustomers = pgTable(
+  "stripe_customers",
+  {
+    organizationId: uuid("organization_id")
+      .primaryKey()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("stripe_customers_customer_unique").on(table.stripeCustomerId),
+    unique("stripe_customers_organization_customer_unique").on(
+      table.organizationId,
+      table.stripeCustomerId,
+    ),
+    check("stripe_customers_id_format", sql`${table.stripeCustomerId} ~ '^cus_[A-Za-z0-9]+$'`),
+  ],
+).enableRLS();
+
+export const organizationSubscriptions = pgTable(
+  "organization_subscriptions",
+  {
+    organizationId: uuid("organization_id")
+      .primaryKey()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => subscriptionPlans.id, { onDelete: "restrict" }),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).notNull(),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 })
+      .notNull(),
+    stripePriceId: varchar("stripe_price_id", { length: 255 }).notNull(),
+    status: subscriptionStatus("status").notNull(),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+    currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    stripeEventCreatedAt: bigint("stripe_event_created_at", { mode: "number" })
+      .default(0)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("organization_subscriptions_stripe_subscription_unique").on(
+      table.stripeSubscriptionId,
+    ),
+    foreignKey({
+      name: "organization_subscriptions_customer_mapping_fk",
+      columns: [table.organizationId, table.stripeCustomerId],
+      foreignColumns: [stripeCustomers.organizationId, stripeCustomers.stripeCustomerId],
+    }).onDelete("cascade"),
+    index("organization_subscriptions_status_idx").on(table.status),
+    index("organization_subscriptions_customer_idx").on(table.stripeCustomerId),
+    check("organization_subscriptions_customer_format", sql`${table.stripeCustomerId} ~ '^cus_[A-Za-z0-9]+$'`),
+    check("organization_subscriptions_subscription_format", sql`${table.stripeSubscriptionId} ~ '^sub_[A-Za-z0-9]+$'`),
+    check("organization_subscriptions_price_format", sql`${table.stripePriceId} ~ '^price_[A-Za-z0-9]+$'`),
+    check("organization_subscriptions_event_created_nonnegative", sql`${table.stripeEventCreatedAt} >= 0`),
+  ],
+).enableRLS();
+
+export const stripeWebhookEvents = pgTable(
+  "stripe_webhook_events",
+  {
+    stripeEventId: varchar("stripe_event_id", { length: 255 }).primaryKey(),
+    eventType: varchar("event_type", { length: 120 }).notNull(),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
+    payloadSha256: varchar("payload_sha256", { length: 64 }).notNull(),
+    stripeCreatedAt: bigint("stripe_created_at", { mode: "number" }).notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("stripe_webhook_events_organization_processed_idx").on(
+      table.organizationId,
+      table.processedAt,
+    ),
+    check("stripe_webhook_events_id_format", sql`${table.stripeEventId} ~ '^evt_[A-Za-z0-9]+$'`),
+    check("stripe_webhook_events_hash_format", sql`${table.payloadSha256} ~ '^[a-f0-9]{64}$'`),
+    check("stripe_webhook_events_created_nonnegative", sql`${table.stripeCreatedAt} >= 0`),
+  ],
+).enableRLS();
+
 export const profilesRelations = relations(profiles, ({ many }) => ({
   createdOrganizations: many(organizations),
   memberships: many(organizationMembers),
@@ -496,6 +636,9 @@ export const organizationsRelations = relations(
     invoices: many(invoices),
     invoiceItems: many(invoiceItems),
     paymentRecords: many(paymentRecords),
+    stripeCustomer: one(stripeCustomers),
+    subscription: one(organizationSubscriptions),
+    stripeWebhookEvents: many(stripeWebhookEvents),
   }),
 );
 
@@ -584,6 +727,38 @@ export const paymentRecordsRelations = relations(paymentRecords, ({ one }) => ({
   recorder: one(profiles, {
     fields: [paymentRecords.recordedBy],
     references: [profiles.id],
+  }),
+}));
+
+export const subscriptionPlansRelations = relations(subscriptionPlans, ({ many }) => ({
+  subscriptions: many(organizationSubscriptions),
+}));
+
+export const stripeCustomersRelations = relations(stripeCustomers, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [stripeCustomers.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const organizationSubscriptionsRelations = relations(
+  organizationSubscriptions,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationSubscriptions.organizationId],
+      references: [organizations.id],
+    }),
+    plan: one(subscriptionPlans, {
+      fields: [organizationSubscriptions.planId],
+      references: [subscriptionPlans.id],
+    }),
+  }),
+);
+
+export const stripeWebhookEventsRelations = relations(stripeWebhookEvents, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [stripeWebhookEvents.organizationId],
+    references: [organizations.id],
   }),
 }));
 
