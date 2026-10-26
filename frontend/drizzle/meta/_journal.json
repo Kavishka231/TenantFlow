@@ -113,6 +113,13 @@
       "when": 1793005838495,
       "tag": "0015_skinny_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793006203740,
+      "tag": "0016_stripe_checkout_registration",
+      "breakpoints": true
     }
   ]
 }
