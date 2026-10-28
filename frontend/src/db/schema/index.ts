@@ -42,6 +42,12 @@ export const auditEventType = pgEnum("audit_event_type", [
   "invoice_cancelled",
   "invoice_deleted",
   "payment_recorded",
+  "expense_created",
+  "expense_updated",
+  "expense_status_changed",
+  "expense_receipt_attached",
+  "expense_receipt_removed",
+  "expense_deleted",
 ]);
 
 export const customerStatus = pgEnum("customer_status", [
@@ -82,6 +88,13 @@ export const paymentMethod = pgEnum("payment_method", [
   "card",
   "check",
   "other",
+]);
+
+export const expenseStatus = pgEnum("expense_status", [
+  "pending",
+  "paid",
+  "reimbursed",
+  "cancelled",
 ]);
 
 export const subscriptionStatus = pgEnum("subscription_status", [
@@ -588,6 +601,123 @@ export const paymentRecords = pgTable(
   ],
 ).enableRLS();
 
+export const expenseCategories = pgTable(
+  "expense_categories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 80 }).notNull(),
+    color: varchar("color", { length: 7 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("expense_categories_organization_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
+    unique("expense_categories_organization_id_id_unique").on(
+      table.organizationId,
+      table.id,
+    ),
+    index("expense_categories_organization_name_idx").on(
+      table.organizationId,
+      table.name,
+    ),
+    check(
+      "expense_categories_name_length",
+      sql`char_length(btrim(${table.name})) between 1 and 80`,
+    ),
+    check(
+      "expense_categories_color_format",
+      sql`${table.color} ~ '^#[0-9A-Fa-f]{6}$'`,
+    ),
+  ],
+).enableRLS();
+
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull(),
+    expenseDate: date("expense_date", { mode: "string" }).notNull(),
+    vendor: varchar("vendor", { length: 160 }).notNull(),
+    paymentMethod: paymentMethod("payment_method").notNull(),
+    status: expenseStatus("status").default("pending").notNull(),
+    paidDate: date("paid_date", { mode: "string" }),
+    description: text("description"),
+    receiptPath: text("receipt_path"),
+    receiptName: varchar("receipt_name", { length: 255 }),
+    receiptMimeType: varchar("receipt_mime_type", { length: 100 }),
+    receiptSize: integer("receipt_size"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "restrict" }),
+    version: integer("version").default(1).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("expenses_organization_id_id_unique").on(table.organizationId, table.id),
+    uniqueIndex("expenses_receipt_path_unique")
+      .on(table.receiptPath)
+      .where(sql`${table.receiptPath} is not null`),
+    foreignKey({
+      name: "expenses_category_tenant_fk",
+      columns: [table.organizationId, table.categoryId],
+      foreignColumns: [expenseCategories.organizationId, expenseCategories.id],
+    }).onDelete("restrict"),
+    index("expenses_organization_date_idx").on(table.organizationId, table.expenseDate),
+    index("expenses_organization_status_date_idx").on(
+      table.organizationId,
+      table.status,
+      table.expenseDate,
+    ),
+    index("expenses_organization_category_date_idx").on(
+      table.organizationId,
+      table.categoryId,
+      table.expenseDate,
+    ),
+    index("expenses_organization_vendor_idx").on(table.organizationId, table.vendor),
+    check("expenses_amount_range", sql`${table.amountMinor} between 1 and 1000000000000`),
+    check("expenses_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check("expenses_vendor_length", sql`char_length(btrim(${table.vendor})) between 1 and 160`),
+    check("expenses_description_length", sql`${table.description} is null or char_length(${table.description}) <= 5000`),
+    check(
+      "expenses_payment_state_valid",
+      sql`(${table.status} in ('paid', 'reimbursed') and ${table.paidDate} is not null) or (${table.status} in ('pending', 'cancelled') and ${table.paidDate} is null)`,
+    ),
+    check(
+      "expenses_receipt_metadata_complete",
+      sql`(${table.receiptPath} is null and ${table.receiptName} is null and ${table.receiptMimeType} is null and ${table.receiptSize} is null) or (${table.receiptPath} is not null and ${table.receiptName} is not null and ${table.receiptMimeType} is not null and ${table.receiptSize} is not null)`,
+    ),
+    check(
+      "expenses_receipt_path_tenant",
+      sql`${table.receiptPath} is null or ${table.receiptPath} like ${table.organizationId}::text || '/%'`,
+    ),
+    check("expenses_receipt_size_range", sql`${table.receiptSize} is null or ${table.receiptSize} between 1 and 5242880`),
+    check("expenses_version_positive", sql`${table.version} > 0`),
+  ],
+).enableRLS();
+
 export const subscriptionPlans = pgTable(
   "subscription_plans",
   {
@@ -731,6 +861,8 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   updatedDeals: many(deals, { relationName: "deal_updater" }),
   assignedDeals: many(deals, { relationName: "deal_assignee" }),
   dealActivities: many(dealActivities),
+  createdExpenses: many(expenses, { relationName: "expense_creator" }),
+  updatedExpenses: many(expenses, { relationName: "expense_updater" }),
 }));
 
 export const organizationsRelations = relations(
@@ -753,6 +885,8 @@ export const organizationsRelations = relations(
     pipelineStages: many(pipelineStages),
     deals: many(deals),
     dealActivities: many(dealActivities),
+    expenseCategories: many(expenseCategories),
+    expenses: many(expenses),
   }),
 );
 
@@ -862,6 +996,35 @@ export const paymentRecordsRelations = relations(paymentRecords, ({ one }) => ({
   recorder: one(profiles, {
     fields: [paymentRecords.recordedBy],
     references: [profiles.id],
+  }),
+}));
+
+export const expenseCategoriesRelations = relations(expenseCategories, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [expenseCategories.organizationId],
+    references: [organizations.id],
+  }),
+  expenses: many(expenses),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [expenses.organizationId],
+    references: [organizations.id],
+  }),
+  category: one(expenseCategories, {
+    fields: [expenses.categoryId],
+    references: [expenseCategories.id],
+  }),
+  creator: one(profiles, {
+    fields: [expenses.createdBy],
+    references: [profiles.id],
+    relationName: "expense_creator",
+  }),
+  updater: one(profiles, {
+    fields: [expenses.updatedBy],
+    references: [profiles.id],
+    relationName: "expense_updater",
   }),
 }));
 

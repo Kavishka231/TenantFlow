@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { organizationMembers, organizations, pipelineStages } from "@/db/schema";
+import { expenseCategories, organizationMembers, organizations, pipelineStages } from "@/db/schema";
 import { withUserContext } from "@/db/client";
 import type { createOrganizationSchema } from "@/lib/organizations/validation";
 import type { z } from "zod";
@@ -52,6 +52,15 @@ export async function createOrganizationForUser(
         { organizationId, name: "Proposal", color: "#F59E0B", position: 3, kind: "open" },
         { organizationId, name: "Won", color: "#10B981", position: 4, kind: "won" },
         { organizationId, name: "Lost", color: "#EF4444", position: 5, kind: "lost" },
+      ]);
+
+      await transaction.insert(expenseCategories).values([
+        { organizationId, name: "Operations", color: "#6366F1" },
+        { organizationId, name: "Marketing", color: "#EC4899" },
+        { organizationId, name: "Software", color: "#8B5CF6" },
+        { organizationId, name: "Travel", color: "#F59E0B" },
+        { organizationId, name: "Office", color: "#10B981" },
+        { organizationId, name: "Other", color: "#64748B" },
       ]);
     });
   } catch (error) {

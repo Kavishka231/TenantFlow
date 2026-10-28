@@ -31,6 +31,12 @@ const eventLabels = {
   invoice_cancelled: "Invoice cancelled",
   invoice_deleted: "Invoice deleted",
   payment_recorded: "Payment recorded",
+  expense_created: "Expense created",
+  expense_updated: "Expense updated",
+  expense_status_changed: "Expense status changed",
+  expense_receipt_attached: "Expense receipt attached",
+  expense_receipt_removed: "Expense receipt removed",
+  expense_deleted: "Expense deleted",
 } as const;
 
 async function OrganizationSettingsContent({
