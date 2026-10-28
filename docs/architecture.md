@@ -34,6 +34,9 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/billing/stripe-api.ts`: test-mode Stripe REST adapter and server-owned prices
 - `src/lib/billing/webhook.ts`: raw-body signature verification and event validation
 - `src/lib/billing/entitlements.ts`: transaction-locked plan capacity enforcement
+- `src/lib/analytics/metrics.ts`: tenant-scoped dashboard totals
+- `src/lib/analytics/financial.ts`: currency-separated monthly financial series
+- `src/lib/analytics/insights.ts`: growth, status, and recent activity queries
 
 ## Workspace selection
 
@@ -83,3 +86,11 @@ Checkout and Customer Portal sessions are created only after OWNER authorization
 Stripe is authoritative for lifecycle state. Signed subscription events enter
 through a Node.js route handler and dedicated database capability; plan limits
 are checked inside customer and invoice creation transactions.
+
+## Dashboard analytics
+
+The dashboard validates a bounded date range, explicitly authorizes the active
+organization, and executes read-only aggregates through `withUserContext`.
+Financial series are grouped by ISO currency before presentation; no exchange
+rate conversion or cross-currency summation is implied. Recent activity is
+derived from tenant-readable business tables so MEMBER access stays read-only.

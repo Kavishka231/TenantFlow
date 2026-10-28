@@ -68,11 +68,20 @@ and test identities have not been configured.
 - pricing and billing UI with plan capacity enforcement
 - credential-gated RLS, webhook, and Playwright coverage
 
-## Recommended Day 8
+## Day 8 — business dashboard analytics
 
-1. provision the dedicated webhook login and restricted runtime role in CI;
-2. run Stripe CLI webhook and Checkout suites against an isolated test project;
-3. add metered usage reporting only if product requirements demand it;
-4. add billing notification delivery and reconciliation observability;
-5. design grace-period and dunning policy around Stripe's authoritative status;
-6. add organization billing contacts without mixing them with invoice customers.
+- tenant-scoped customer, invoice, payment, balance, and overdue metrics
+- monthly invoiced and paid series separated by currency
+- customer growth, invoice status distribution, and recent activity
+- responsive date-filtered dashboard with honest empty and error states
+- MEMBER read-only analytics backed by existing forced RLS
+- Vitest, credential-gated RLS, and Playwright coverage
+
+## Recommended Day 9
+
+1. provision disposable Auth identities and the restricted runtime role in CI;
+2. add exportable analytics reports only after privacy requirements are defined;
+3. add saved dashboard preferences without making filters authorization state;
+4. profile aggregate queries with realistic isolated test volumes;
+5. add accessible chart tables or CSV exports for assistive workflows;
+6. define exchange-rate requirements before offering cross-currency reporting.

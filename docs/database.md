@@ -38,6 +38,11 @@ mappings, webhook event idempotency, owner-only billing RLS, safe plan
 entitlements, and a dedicated webhook capability role. Billing tables have no
 runtime mutation grants; signed webhook processing is the state-sync path.
 
+Migration `0020` adds organization/date indexes for invoice and payment
+analytics. Analytics does not introduce summary tables or privileged database
+functions: it reads the existing forced-RLS business tables under the same
+authenticated transaction claims as customer and invoice pages.
+
 ## Connection roles
 
 `DATABASE_URL` is server-only. Runtime connections must use a dedicated login role that inherits the Supabase `authenticated` role so the migration policies and grants apply, while remaining a non-owner. It must:
@@ -69,3 +74,6 @@ is non-owner, non-superuser, non-`BYPASSRLS`, and inherits `authenticated`.
 The billing suite verifies owner-only Stripe record visibility, cross-tenant
 denial, safe member entitlement reads, denied direct mutations, and denied
 webhook RPC execution by the normal authenticated runtime.
+
+The analytics suite verifies MEMBER aggregates, currency separation, and denial
+of rows selected with another organization's identifier.

@@ -76,6 +76,15 @@ count as executed when real database credentials and Auth identities are absent.
 - normal `authenticated` connections cannot execute webhook synchronization;
 - a dedicated login inheriting only `tenantflow_stripe_webhook` is required.
 
+## Analytics isolation
+
+- OWNER, ADMIN, and MEMBER may read their workspace analytics;
+- analytics has no write path and does not expand underlying table grants;
+- all queries carry an organization predicate and run with authenticated RLS claims;
+- date ranges are validated, bounded to 366 days, and remain SQL parameters;
+- financial aggregates stay separated by currency;
+- cross-tenant aggregate tests use the restricted non-`BYPASSRLS` runtime role.
+
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.

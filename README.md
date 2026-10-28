@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 7 adds organization subscription billing with Stripe Test Mode. Development migrations are applied through `0019`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
+Day 8 adds tenant-isolated business dashboard analytics. Development migrations are applied through `0020`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -42,6 +42,11 @@ Day 7 adds organization subscription billing with Stripe Test Mode. Development 
 - signed, idempotent webhook synchronization through a dedicated database role
 - pricing and billing dashboards with transactional customer and invoice plan limits
 - credential-gated billing RLS and Playwright coverage
+- date-filtered customer, invoice, payment, outstanding, and overdue metrics
+- currency-separated monthly invoice and payment analytics
+- customer growth, effective invoice status, and real recent-activity charts
+- responsive analytics dashboard with loading, error, and empty states
+- MEMBER-readable analytics enforced through authorization and PostgreSQL RLS
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
@@ -164,6 +169,11 @@ foreign keys enforce that invoice customers, items, and payments remain in the
 same tenant. OWNER and ADMIN manage invoices and record manual payments; MEMBER
 is read-only. Payment insertion is available only through a locked database
 function that validates the caller and outstanding balance.
+
+Analytics never combines different currencies into one financial total and does
+not generate placeholder business data. Queries include explicit organization
+predicates and execute under transaction-local RLS claims; MEMBER access remains
+read-only.
 
 Only an organization OWNER can manage subscription billing. Checkout uses
 server-selected Price IDs. Stripe webhooks are verified against the raw body
