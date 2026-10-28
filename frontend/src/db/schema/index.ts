@@ -50,6 +50,23 @@ export const customerStatus = pgEnum("customer_status", [
   "inactive",
 ]);
 
+export const pipelineStageKind = pgEnum("pipeline_stage_kind", [
+  "open",
+  "won",
+  "lost",
+]);
+
+export const dealOutcome = pgEnum("deal_outcome", ["open", "won", "lost"]);
+
+export const dealActivityType = pgEnum("deal_activity_type", [
+  "created",
+  "updated",
+  "stage_changed",
+  "won",
+  "lost",
+  "note_added",
+]);
+
 export const invoiceStatus = pgEnum("invoice_status", [
   "draft",
   "sent",
@@ -310,6 +327,89 @@ export const customers = pgTable(
       sql`${table.notes} is null or char_length(${table.notes}) <= 5000`,
     ),
     check("customers_version_positive", sql`${table.version} > 0`),
+  ],
+).enableRLS();
+
+export const pipelineStages = pgTable(
+  "pipeline_stages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 80 }).notNull(),
+    color: varchar("color", { length: 7 }).notNull(),
+    position: integer("position").notNull(),
+    kind: pipelineStageKind("kind").default("open").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("pipeline_stages_organization_name_unique").on(table.organizationId, table.name),
+    unique("pipeline_stages_organization_position_unique").on(table.organizationId, table.position),
+    unique("pipeline_stages_organization_id_id_unique").on(table.organizationId, table.id),
+    index("pipeline_stages_organization_kind_idx").on(table.organizationId, table.kind),
+    check("pipeline_stages_name_length", sql`char_length(btrim(${table.name})) between 1 and 80`),
+    check("pipeline_stages_color_format", sql`${table.color} ~ '^#[0-9A-Fa-f]{6}$'`),
+    check("pipeline_stages_position_positive", sql`${table.position} > 0`),
+  ],
+).enableRLS();
+
+export const deals = pgTable(
+  "deals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").notNull(),
+    stageId: uuid("stage_id").notNull(),
+    assignedUserId: uuid("assigned_user_id"),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    valueMinor: bigint("value_minor", { mode: "number" }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull(),
+    expectedCloseDate: date("expected_close_date", { mode: "string" }),
+    outcome: dealOutcome("outcome").default("open").notNull(),
+    outcomeReason: varchar("outcome_reason", { length: 500 }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdBy: uuid("created_by").notNull().references(() => profiles.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by").notNull().references(() => profiles.id, { onDelete: "restrict" }),
+    version: integer("version").default(1).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("deals_organization_id_id_unique").on(table.organizationId, table.id),
+    foreignKey({ name: "deals_customer_tenant_fk", columns: [table.organizationId, table.customerId], foreignColumns: [customers.organizationId, customers.id] }).onDelete("restrict"),
+    foreignKey({ name: "deals_stage_tenant_fk", columns: [table.organizationId, table.stageId], foreignColumns: [pipelineStages.organizationId, pipelineStages.id] }).onDelete("restrict"),
+    foreignKey({ name: "deals_assignee_tenant_fk", columns: [table.organizationId, table.assignedUserId], foreignColumns: [organizationMembers.organizationId, organizationMembers.userId] }).onDelete("restrict"),
+    index("deals_organization_stage_idx").on(table.organizationId, table.stageId),
+    index("deals_organization_customer_idx").on(table.organizationId, table.customerId),
+    index("deals_organization_assignee_idx").on(table.organizationId, table.assignedUserId),
+    index("deals_organization_close_date_idx").on(table.organizationId, table.expectedCloseDate),
+    index("deals_organization_outcome_idx").on(table.organizationId, table.outcome),
+    check("deals_title_length", sql`char_length(btrim(${table.title})) between 1 and 200`),
+    check("deals_description_length", sql`${table.description} is null or char_length(${table.description}) <= 5000`),
+    check("deals_value_range", sql`${table.valueMinor} between 0 and 1000000000000`),
+    check("deals_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check("deals_outcome_reason_length", sql`${table.outcomeReason} is null or char_length(${table.outcomeReason}) between 1 and 500`),
+    check("deals_version_positive", sql`${table.version} > 0`),
+  ],
+).enableRLS();
+
+export const dealActivities = pgTable(
+  "deal_activities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    dealId: uuid("deal_id").notNull(),
+    actorId: uuid("actor_id").notNull().references(() => profiles.id, { onDelete: "restrict" }),
+    type: dealActivityType("type").notNull(),
+    note: text("note"),
+    metadata: jsonb("metadata").$type<Record<string, string>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({ name: "deal_activities_deal_tenant_fk", columns: [table.organizationId, table.dealId], foreignColumns: [deals.organizationId, deals.id] }).onDelete("cascade"),
+    index("deal_activities_organization_deal_created_idx").on(table.organizationId, table.dealId, table.createdAt),
+    check("deal_activities_note_length", sql`${table.note} is null or char_length(btrim(${table.note})) between 1 and 5000`),
   ],
 ).enableRLS();
 
@@ -628,6 +728,10 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   createdInvoices: many(invoices, { relationName: "invoice_creator" }),
   updatedInvoices: many(invoices, { relationName: "invoice_updater" }),
   recordedPayments: many(paymentRecords),
+  createdDeals: many(deals, { relationName: "deal_creator" }),
+  updatedDeals: many(deals, { relationName: "deal_updater" }),
+  assignedDeals: many(deals, { relationName: "deal_assignee" }),
+  dealActivities: many(dealActivities),
 }));
 
 export const organizationsRelations = relations(
@@ -647,6 +751,9 @@ export const organizationsRelations = relations(
     stripeCustomer: one(stripeCustomers),
     subscription: one(organizationSubscriptions),
     stripeWebhookEvents: many(stripeWebhookEvents),
+    pipelineStages: many(pipelineStages),
+    deals: many(deals),
+    dealActivities: many(dealActivities),
   }),
 );
 
@@ -687,6 +794,27 @@ export const customersRelations = relations(customers, ({ one }) => ({
     references: [profiles.id],
     relationName: "customer_updater",
   }),
+}));
+
+export const pipelineStagesRelations = relations(pipelineStages, ({ one, many }) => ({
+  organization: one(organizations, { fields: [pipelineStages.organizationId], references: [organizations.id] }),
+  deals: many(deals),
+}));
+
+export const dealsRelations = relations(deals, ({ one, many }) => ({
+  organization: one(organizations, { fields: [deals.organizationId], references: [organizations.id] }),
+  customer: one(customers, { fields: [deals.customerId], references: [customers.id] }),
+  stage: one(pipelineStages, { fields: [deals.stageId], references: [pipelineStages.id] }),
+  assignee: one(profiles, { fields: [deals.assignedUserId], references: [profiles.id], relationName: "deal_assignee" }),
+  creator: one(profiles, { fields: [deals.createdBy], references: [profiles.id], relationName: "deal_creator" }),
+  updater: one(profiles, { fields: [deals.updatedBy], references: [profiles.id], relationName: "deal_updater" }),
+  activities: many(dealActivities),
+}));
+
+export const dealActivitiesRelations = relations(dealActivities, ({ one }) => ({
+  organization: one(organizations, { fields: [dealActivities.organizationId], references: [organizations.id] }),
+  deal: one(deals, { fields: [dealActivities.dealId], references: [deals.id] }),
+  actor: one(profiles, { fields: [dealActivities.actorId], references: [profiles.id] }),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({

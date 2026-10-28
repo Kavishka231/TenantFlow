@@ -57,4 +57,9 @@ describe("organization role permissions", () => {
       "member",
     ]);
   });
+
+  it("allows members to read deals but only managers to mutate them", () => {
+    expect(rolesWithPermission("read_deals")).toEqual(["owner", "admin", "member"]);
+    expect(rolesWithPermission("manage_deals")).toEqual(["owner", "admin"]);
+  });
 });
