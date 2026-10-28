@@ -77,11 +77,20 @@ and test identities have not been configured.
 - MEMBER read-only analytics backed by existing forced RLS
 - Vitest, credential-gated RLS, and Playwright coverage
 
-## Recommended Day 9
+## Day 9 — sales pipeline and deal management
+
+- tenant-isolated stages, deals, assignment, notes, and activity history
+- responsive Kanban with authorized drag-and-drop transitions
+- WON/LOST outcomes and optimistic concurrency
+- customer and team-member relationship enforcement
+- currency-separated sales metrics integrated into the dashboard
+- Vitest, credential-gated RLS, and Playwright coverage
+
+## Recommended Day 10
 
 1. provision disposable Auth identities and the restricted runtime role in CI;
-2. add exportable analytics reports only after privacy requirements are defined;
-3. add saved dashboard preferences without making filters authorization state;
-4. profile aggregate queries with realistic isolated test volumes;
-5. add accessible chart tables or CSV exports for assistive workflows;
-6. define exchange-rate requirements before offering cross-currency reporting.
+2. add configurable open pipeline stages with safe reordering;
+3. add deal search and forecasting only after product requirements are defined;
+4. profile pipeline queries with realistic tenant volumes;
+5. add notification delivery for assignment and close-date reminders;
+6. define exchange-rate requirements before cross-currency forecasting.

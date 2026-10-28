@@ -1,0 +1,1 @@
+export default function Loading() { return <main className="min-h-screen animate-pulse bg-slate-50 px-6 py-10"><div className="mx-auto flex max-w-[96rem] gap-4">{Array.from({ length: 5 }, (_, index) => <div key={index} className="h-[32rem] w-[19rem] shrink-0 rounded-2xl bg-white" />)}</div></main>; }

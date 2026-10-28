@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 8 adds tenant-isolated business dashboard analytics. Development migrations are applied through `0020`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
+Day 9 adds a tenant-isolated sales pipeline and deal management. Development migrations are applied through `0022`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -47,6 +47,11 @@ Day 8 adds tenant-isolated business dashboard analytics. Development migrations 
 - customer growth, effective invoice status, and real recent-activity charts
 - responsive analytics dashboard with loading, error, and empty states
 - MEMBER-readable analytics enforced through authorization and PostgreSQL RLS
+- organization pipeline stages and customer-linked deals with integer minor-unit values
+- OWNER/ADMIN deal management with MEMBER read-only access
+- responsive drag-and-drop Kanban pipeline and secure stage transitions
+- WON/LOST outcomes, notes, assignment, close dates, and append-only activity history
+- currency-separated pipeline value and won-revenue dashboard metrics
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
@@ -174,6 +179,10 @@ Analytics never combines different currencies into one financial total and does
 not generate placeholder business data. Queries include explicit organization
 predicates and execute under transaction-local RLS claims; MEMBER access remains
 read-only.
+
+Deal customer, stage, and assignee identities are validated inside the same
+organization boundary. Removing a team member safely unassigns their deals.
+Deal and sales aggregates never combine different currencies.
 
 Only an organization OWNER can manage subscription billing. Checkout uses
 server-selected Price IDs. Stripe webhooks are verified against the raw body

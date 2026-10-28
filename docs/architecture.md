@@ -37,6 +37,9 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/analytics/metrics.ts`: tenant-scoped dashboard totals
 - `src/lib/analytics/financial.ts`: currency-separated monthly financial series
 - `src/lib/analytics/insights.ts`: growth, status, and recent activity queries
+- `src/lib/deals/mutations.ts`: tenant-qualified deal writes and transitions
+- `src/lib/deals/data.ts`: pipeline, detail, options, and activity reads
+- `src/lib/deals/metrics.ts`: currency-safe sales dashboard aggregates
 
 ## Workspace selection
 
@@ -94,3 +97,11 @@ organization, and executes read-only aggregates through `withUserContext`.
 Financial series are grouped by ISO currency before presentation; no exchange
 rate conversion or cross-currency summation is implied. Recent activity is
 derived from tenant-readable business tables so MEMBER access stays read-only.
+
+## Sales pipeline
+
+Deals reference customers and stages through composite tenant keys. Assignees
+are validated by a database trigger against organization membership, and member
+removal unassigns deals without blocking the team workflow. The browser's drag
+payload is untrusted; every transition repeats server authorization and executes
+under RLS with optimistic version checks.

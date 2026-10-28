@@ -43,6 +43,11 @@ analytics. Analytics does not introduce summary tables or privileged database
 functions: it reads the existing forced-RLS business tables under the same
 authenticated transaction claims as customer and invoice pages.
 
+Migrations `0021` and `0022` add pipeline stages, deals, deal activity, forced
+RLS policies, same-tenant customer/stage constraints, assignee validation,
+outcome synchronization, default stages, and safe unassignment when team
+membership ends.
+
 ## Connection roles
 
 `DATABASE_URL` is server-only. Runtime connections must use a dedicated login role that inherits the Supabase `authenticated` role so the migration policies and grants apply, while remaining a non-owner. It must:
@@ -77,3 +82,6 @@ webhook RPC execution by the normal authenticated runtime.
 
 The analytics suite verifies MEMBER aggregates, currency separation, and denial
 of rows selected with another organization's identifier.
+
+The deal suite verifies MEMBER read-only visibility, manager mutations,
+append-only activity, and rejection of cross-tenant customers and assignees.

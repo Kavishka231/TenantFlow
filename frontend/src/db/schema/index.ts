@@ -379,7 +379,6 @@ export const deals = pgTable(
     unique("deals_organization_id_id_unique").on(table.organizationId, table.id),
     foreignKey({ name: "deals_customer_tenant_fk", columns: [table.organizationId, table.customerId], foreignColumns: [customers.organizationId, customers.id] }).onDelete("restrict"),
     foreignKey({ name: "deals_stage_tenant_fk", columns: [table.organizationId, table.stageId], foreignColumns: [pipelineStages.organizationId, pipelineStages.id] }).onDelete("restrict"),
-    foreignKey({ name: "deals_assignee_tenant_fk", columns: [table.organizationId, table.assignedUserId], foreignColumns: [organizationMembers.organizationId, organizationMembers.userId] }).onDelete("restrict"),
     index("deals_organization_stage_idx").on(table.organizationId, table.stageId),
     index("deals_organization_customer_idx").on(table.organizationId, table.customerId),
     index("deals_organization_assignee_idx").on(table.organizationId, table.assignedUserId),

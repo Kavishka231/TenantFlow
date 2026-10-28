@@ -85,6 +85,16 @@ count as executed when real database credentials and Auth identities are absent.
 - financial aggregates stay separated by currency;
 - cross-tenant aggregate tests use the restricted non-`BYPASSRLS` runtime role.
 
+## Deal isolation
+
+- organization members may read deals, stages, and activity;
+- only OWNER and ADMIN may create, update, move, close, note, or delete deals;
+- composite keys prevent cross-tenant customer and stage relationships;
+- a trigger validates optional assignees against current organization membership;
+- outcome and close timestamps derive from immutable stage kinds;
+- activity rows are append-only and MEMBER cannot insert notes;
+- values use bounded integer minor units and metrics remain currency-separated.
+
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.
