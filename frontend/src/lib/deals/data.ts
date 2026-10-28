@@ -44,7 +44,7 @@ export function getDealForUser(userId: string, organizationId: string, dealId: s
       .where(and(eq(deals.organizationId, organizationId), eq(deals.id, dealId))).limit(1);
     if (!deal) return null;
     const activities = await transaction.select({ id: dealActivities.id, type: dealActivities.type, note: dealActivities.note, metadata: dealActivities.metadata, createdAt: dealActivities.createdAt, actorName: profiles.fullName })
-      .from(dealActivities).innerJoin(profiles, eq(profiles.id, dealActivities.actorId))
+      .from(dealActivities).leftJoin(profiles, eq(profiles.id, dealActivities.actorId))
       .where(and(eq(dealActivities.organizationId, organizationId), eq(dealActivities.dealId, dealId))).orderBy(desc(dealActivities.createdAt));
     return { ...deal, activities };
   });
