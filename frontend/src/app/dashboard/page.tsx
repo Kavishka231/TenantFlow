@@ -13,6 +13,7 @@ import { getDashboardInsightsForUser } from "@/lib/analytics/insights";
 import { getDashboardMetricsForUser } from "@/lib/analytics/metrics";
 import { resolveAnalyticsRange } from "@/lib/analytics/range";
 import { getSalesMetricsForUser } from "@/lib/deals/metrics";
+import { getExpenseReportsForUser } from "@/lib/expenses/reports";
 import type { OrganizationSummary } from "@/lib/organizations/list";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { getActiveWorkspaceForUser } from "@/lib/organizations/workspace";
@@ -34,13 +35,14 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<Search
 
 async function WorkspaceAnalytics({ userId, organization, range }: { userId: string; organization: OrganizationSummary; range: ReturnType<typeof resolveAnalyticsRange> }) {
   await requireOrganizationPermission(userId, organization.id, "read_analytics");
-  const [metrics, financial, insights, sales] = await Promise.all([
+  const [metrics, financial, insights, sales, expenseReports] = await Promise.all([
     getDashboardMetricsForUser(userId, organization.id, range),
     getMonthlyFinancialAnalyticsForUser(userId, organization.id, range),
     getDashboardInsightsForUser(userId, organization.id, range),
     getSalesMetricsForUser(userId, organization.id, range),
+    getExpenseReportsForUser(userId, organization.id, range),
   ]);
-  return <AnalyticsDashboard organization={organization} range={range} metrics={metrics} financial={financial} insights={insights} sales={sales} />;
+  return <AnalyticsDashboard organization={organization} range={range} metrics={metrics} financial={financial} insights={insights} sales={sales} expenseReports={expenseReports} />;
 }
 
 function EmptyWorkspace() {
