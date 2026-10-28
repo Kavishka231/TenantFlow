@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
 
 import { withUserContext, type DatabaseTransaction } from "@/db/client";
@@ -89,5 +89,26 @@ export function deleteExpenseForUser(userId: string, input: z.infer<typeof delet
     )).returning({ id: expenses.id, receiptPath: expenses.receiptPath });
     if (!expense) throw new ExpenseConflictError();
     return expense;
+  });
+}
+
+export function attachExpenseReceiptForUser(userId: string, input: { expenseId: string; organizationId: string; path: string; name: string; mimeType: string; size: number; version: number }) {
+  return withUserContext(userId, async (transaction) => {
+    const [expense] = await transaction.update(expenses).set({
+      receiptMimeType: input.mimeType, receiptName: input.name, receiptPath: input.path,
+      receiptSize: input.size, updatedBy: userId,
+    }).where(and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, input.organizationId), eq(expenses.version, input.version), isNull(expenses.receiptPath))).returning({ id: expenses.id });
+    if (!expense) throw new ExpenseConflictError("This expense already has a receipt or changed before upload completed.");
+    return expense;
+  });
+}
+
+export function detachExpenseReceiptForUser(userId: string, input: { expenseId: string; organizationId: string; version: number }) {
+  return withUserContext(userId, async (transaction) => {
+    const [current] = await transaction.select({ receiptPath: expenses.receiptPath }).from(expenses).where(and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, input.organizationId), eq(expenses.version, input.version))).for("update").limit(1);
+    if (!current?.receiptPath) throw new ExpenseConflictError("This receipt was already removed or the expense changed.");
+    const [expense] = await transaction.update(expenses).set({ receiptMimeType: null, receiptName: null, receiptPath: null, receiptSize: null, updatedBy: userId }).where(and(eq(expenses.id, input.expenseId), eq(expenses.organizationId, input.organizationId), eq(expenses.version, input.version))).returning({ id: expenses.id });
+    if (!expense) throw new ExpenseConflictError();
+    return { ...expense, receiptPath: current.receiptPath };
   });
 }

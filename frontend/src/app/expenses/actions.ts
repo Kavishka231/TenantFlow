@@ -1,10 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { ExpenseActionState } from "@/lib/expenses/action-state";
-import { changeExpenseStatusForUser, createExpenseForUser, deleteExpenseForUser, ExpenseConflictError, updateExpenseForUser } from "@/lib/expenses/mutations";
+import { attachExpenseReceiptForUser, changeExpenseStatusForUser, createExpenseForUser, deleteExpenseForUser, detachExpenseReceiptForUser, ExpenseConflictError, updateExpenseForUser } from "@/lib/expenses/mutations";
+import { getExpenseForUser } from "@/lib/expenses/data";
+import { EXPENSE_RECEIPT_BUCKET, receiptObjectPath, validateReceiptFile } from "@/lib/expenses/receipts";
 import { changeExpenseStatusSchema, createExpenseSchema, deleteExpenseSchema, updateExpenseSchema } from "@/lib/expenses/validation";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
@@ -73,7 +76,48 @@ export async function deleteExpenseAction(formData: FormData) {
   if (!result.success) redirect("/dashboard");
   const user = await requireUser();
   await requireOrganizationPermission(user.id, result.data.organizationId, "manage_expenses");
-  await deleteExpenseForUser(user.id, result.data);
+  const deleted = await deleteExpenseForUser(user.id, result.data);
+  if (deleted.receiptPath) {
+    const supabase = await createClient();
+    await supabase.storage.from(EXPENSE_RECEIPT_BUCKET).remove([deleted.receiptPath]);
+  }
   revalidatePath(`/organizations/${result.data.organizationId}/expenses`);
   redirect(`/organizations/${result.data.organizationId}/expenses?expenseStatus=deleted`);
+}
+
+export async function uploadExpenseReceiptAction(_state: ExpenseActionState, formData: FormData): Promise<ExpenseActionState> {
+  const identity = deleteExpenseSchema.safeParse({ expenseId: formData.get("expenseId"), organizationId: formData.get("organizationId"), version: formData.get("version") });
+  const receipt = validateReceiptFile(formData.get("receipt"));
+  if (!identity.success) return { message: "The expense identity is invalid.", status: "error" };
+  if ("error" in receipt) return { message: receipt.error, status: "error" };
+  const user = await requireUser();
+  try {
+    await requireOrganizationPermission(user.id, identity.data.organizationId, "manage_expenses");
+    const expense = await getExpenseForUser(user.id, identity.data.organizationId, identity.data.expenseId);
+    if (!expense || expense.version !== identity.data.version || expense.receiptPath) throw new ExpenseConflictError();
+    const path = receiptObjectPath(identity.data.organizationId, identity.data.expenseId, randomUUID(), receipt.extension);
+    const supabase = await createClient();
+    const upload = await supabase.storage.from(EXPENSE_RECEIPT_BUCKET).upload(path, receipt.file, { cacheControl: "3600", contentType: receipt.file.type, upsert: false });
+    if (upload.error) return { message: "The private receipt upload failed.", status: "error" };
+    try {
+      await attachExpenseReceiptForUser(user.id, { ...identity.data, mimeType: receipt.file.type, name: receipt.name, path, size: receipt.file.size });
+    } catch (error) {
+      await supabase.storage.from(EXPENSE_RECEIPT_BUCKET).remove([path]);
+      throw error;
+    }
+    revalidatePath(`/organizations/${identity.data.organizationId}/expenses/${identity.data.expenseId}`);
+  } catch (error) { return actionError(error, "You cannot attach a receipt to this expense."); }
+  redirect(`/organizations/${identity.data.organizationId}/expenses/${identity.data.expenseId}?receipt=uploaded`);
+}
+
+export async function removeExpenseReceiptAction(formData: FormData) {
+  const identity = deleteExpenseSchema.safeParse({ expenseId: formData.get("expenseId"), organizationId: formData.get("organizationId"), version: formData.get("version") });
+  if (!identity.success) redirect("/dashboard");
+  const user = await requireUser();
+  await requireOrganizationPermission(user.id, identity.data.organizationId, "manage_expenses");
+  const detached = await detachExpenseReceiptForUser(user.id, identity.data);
+  const supabase = await createClient();
+  await supabase.storage.from(EXPENSE_RECEIPT_BUCKET).remove([detached.receiptPath]);
+  revalidatePath(`/organizations/${identity.data.organizationId}/expenses/${identity.data.expenseId}`);
+  redirect(`/organizations/${identity.data.organizationId}/expenses/${identity.data.expenseId}?receipt=removed`);
 }
