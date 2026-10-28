@@ -1,0 +1,18 @@
+"use client";
+
+import { GripVertical, UserRound } from "lucide-react";
+import Link from "next/link";
+import { useOptimistic, useTransition } from "react";
+
+import { transitionDealAction } from "@/app/deals/actions";
+import { formatMinorUnits } from "@/lib/invoices/money";
+
+type Stage = { id: string; name: string; color: string; kind: "open" | "won" | "lost" };
+type Deal = { id: string; title: string; stageId: string; customerName: string; assigneeName: string | null; valueMinor: number; currency: string; expectedCloseDate: string | null; outcome: "open" | "won" | "lost"; version: number };
+
+export function PipelineBoard({ organizationId, stages, deals, canManage }: { organizationId: string; stages: Stage[]; deals: Deal[]; canManage: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [optimisticDeals, moveOptimistically] = useOptimistic(deals, (current, move: { dealId: string; stageId: string }) => current.map(deal => deal.id === move.dealId ? { ...deal, stageId: move.stageId } : deal));
+  function moveDeal(dealId: string, stageId: string) { const deal = optimisticDeals.find(item => item.id === dealId); if (!canManage || !deal || deal.stageId === stageId) return; startTransition(async () => { moveOptimistically({ dealId, stageId }); const formData = new FormData(); formData.set("organizationId", organizationId); formData.set("dealId", dealId); formData.set("stageId", stageId); formData.set("version", String(deal.version)); formData.set("outcomeReason", ""); await transitionDealAction(formData); }); }
+  return <div className="flex gap-4 overflow-x-auto pb-4" aria-label="Sales pipeline">{stages.map(stage => { const stageDeals = optimisticDeals.filter(deal => deal.stageId === stage.id); return <section key={stage.id} className="w-[19rem] shrink-0 rounded-2xl border bg-slate-100/70 p-3" onDragOver={event => canManage && event.preventDefault()} onDrop={event => { event.preventDefault(); moveDeal(event.dataTransfer.getData("text/deal-id"), stage.id); }}><header className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ backgroundColor: stage.color }} /><h2 className="font-semibold">{stage.name}</h2></div><span className="rounded-full bg-white px-2 py-0.5 text-xs text-muted-foreground">{stageDeals.length}</span></header><div className="space-y-3">{stageDeals.map(deal => <article key={deal.id} draggable={canManage} onDragStart={event => event.dataTransfer.setData("text/deal-id", deal.id)} className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md"><div className="flex gap-2"><GripVertical className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><Link href={`/organizations/${organizationId}/deals/${deal.id}`} className="font-medium hover:text-indigo-600">{deal.title}</Link><p className="mt-1 truncate text-sm text-muted-foreground">{deal.customerName}</p></div></div><p className="mt-4 font-semibold">{formatMinorUnits(deal.valueMinor, deal.currency)}</p><div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{deal.expectedCloseDate ?? "No close date"}</span>{deal.assigneeName ? <span className="flex max-w-28 items-center gap-1 truncate"><UserRound className="size-3" />{deal.assigneeName}</span> : null}</div></article>)}{!stageDeals.length ? <div className="rounded-xl border border-dashed bg-white/60 p-6 text-center text-sm text-muted-foreground">No deals</div> : null}</div></section>; })}{pending ? <span className="sr-only" role="status">Moving deal</span> : null}</div>;
+}
