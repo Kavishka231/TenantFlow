@@ -86,11 +86,21 @@ and test identities have not been configured.
 - currency-separated sales metrics integrated into the dashboard
 - Vitest, credential-gated RLS, and Playwright coverage
 
-## Recommended Day 10
+## Day 10 â€” expense management
+
+- tenant-isolated categories and expenses with forced RLS
+- secure CRUD, payment status tracking, and optimistic concurrency
+- search, category/status/payment filters, sorting, and pagination
+- responsive list, form, detail, status, and deletion workflows
+- private validated receipts with signed download URLs
+- transactional audit events and currency-separated spending analytics
+- Vitest, credential-gated PostgreSQL RLS, and Playwright coverage
+
+## Recommended Day 11
 
 1. provision disposable Auth identities and the restricted runtime role in CI;
-2. add configurable open pipeline stages with safe reordering;
-3. add deal search and forecasting only after product requirements are defined;
-4. profile pipeline queries with realistic tenant volumes;
-5. add notification delivery for assignment and close-date reminders;
-6. define exchange-rate requirements before cross-currency forecasting.
+2. add category administration with safe delete/reassignment rules;
+3. add receipt malware scanning before production deployment;
+4. profile expense and analytics queries with realistic tenant volumes;
+5. add CSV export only after privacy and retention requirements are defined;
+6. define exchange-rate requirements before cross-currency profit reporting.

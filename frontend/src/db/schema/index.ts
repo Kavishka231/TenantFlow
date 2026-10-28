@@ -696,6 +696,11 @@ export const expenses = pgTable(
       table.categoryId,
       table.expenseDate,
     ),
+    index("expenses_organization_currency_date_idx").on(
+      table.organizationId,
+      table.currency,
+      table.expenseDate,
+    ),
     index("expenses_organization_vendor_idx").on(table.organizationId, table.vendor),
     check("expenses_amount_range", sql`${table.amountMinor} between 1 and 1000000000000`),
     check("expenses_currency_format", sql`${table.currency} ~ '^[A-Z]{3}$'`),

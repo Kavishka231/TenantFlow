@@ -48,6 +48,12 @@ RLS policies, same-tenant customer/stage constraints, assignee validation,
 outcome synchronization, default stages, and safe unassignment when team
 membership ends.
 
+Migrations `0023` and `0024` add expense categories, expenses, payment status,
+receipt metadata, composite tenant constraints, forced RLS, private Storage
+bucket policies, transaction-coupled audit events, default categories, and
+currency/date analytics indexes. Monetary values use integer minor units;
+receipt binaries remain in private Supabase Storage rather than PostgreSQL.
+
 ## Connection roles
 
 `DATABASE_URL` is server-only. Runtime connections must use a dedicated login role that inherits the Supabase `authenticated` role so the migration policies and grants apply, while remaining a non-owner. It must:
@@ -85,3 +91,8 @@ of rows selected with another organization's identifier.
 
 The deal suite verifies MEMBER read-only visibility, manager mutations,
 append-only activity, and rejection of cross-tenant customers and assignees.
+
+The expense suite verifies MEMBER read-only visibility, manager status changes,
+cross-tenant category rejection, audit immutability, and restricted runtime-role
+properties. Storage upload/download/delete coverage additionally requires the
+authenticated Playwright identities because Storage evaluates Auth JWTs.

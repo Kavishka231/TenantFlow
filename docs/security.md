@@ -95,6 +95,20 @@ count as executed when real database credentials and Auth identities are absent.
 - activity rows are append-only and MEMBER cannot insert notes;
 - values use bounded integer minor units and metrics remain currency-separated.
 
+## Expense and receipt isolation
+
+- forced RLS allows members to read only their workspace categories and expenses;
+- only OWNER and ADMIN may create, update, change status, attach receipts, or delete;
+- composite keys reject categories from another organization;
+- optimistic versions protect updates, status changes, and receipt metadata;
+- payment dates are required only for paid or reimbursed expenses;
+- private Storage paths start with the authorized organization UUID;
+- Storage policies allow tenant reads and manager-only writes without a service-role key;
+- receipt types are restricted to PDF/JPEG/PNG/WebP and files to 5 MB;
+- downloads use 60-second signed URLs and responses are non-cacheable;
+- audit metadata excludes amounts, vendor names, descriptions, filenames, and paths;
+- reports exclude cancelled expenses and never combine currencies.
+
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.

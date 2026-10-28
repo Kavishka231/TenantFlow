@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 9 adds a tenant-isolated sales pipeline and deal management. Development migrations are applied through `0022`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
+Day 10 adds tenant-isolated expense management and private receipts. Development migrations are applied through `0024`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -52,6 +52,12 @@ Day 9 adds a tenant-isolated sales pipeline and deal management. Development mig
 - responsive drag-and-drop Kanban pipeline and secure stage transitions
 - WON/LOST outcomes, notes, assignment, close dates, and append-only activity history
 - currency-separated pipeline value and won-revenue dashboard metrics
+- tenant-owned expense categories and expense records with forced RLS
+- OWNER/ADMIN expense CRUD, payment status tracking, and MEMBER read-only access
+- bounded search, filters, sorting, and pagination for expenses
+- private Supabase Storage receipts with validation and signed downloads
+- transaction-coupled expense audit events with non-sensitive metadata
+- currency-separated monthly spending and category dashboard reports
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
@@ -183,6 +189,11 @@ read-only.
 Deal customer, stage, and assignee identities are validated inside the same
 organization boundary. Removing a team member safely unassigns their deals.
 Deal and sales aggregates never combine different currencies.
+
+Expense categories and records are tenant-owned and protected by forced RLS.
+Receipt objects use organization-prefixed paths in a private bucket; every
+upload, signed download, and removal repeats server authorization and Storage
+policies independently enforce MEMBER-read and manager-write access.
 
 Only an organization OWNER can manage subscription billing. Checkout uses
 server-selected Price IDs. Stripe webhooks are verified against the raw body

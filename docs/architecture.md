@@ -40,6 +40,10 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/deals/mutations.ts`: tenant-qualified deal writes and transitions
 - `src/lib/deals/data.ts`: pipeline, detail, options, and activity reads
 - `src/lib/deals/metrics.ts`: currency-safe sales dashboard aggregates
+- `src/lib/expenses/mutations.ts`: tenant-qualified expense and receipt metadata writes
+- `src/lib/expenses/list.ts`: bounded expense search, filters, sorting, and pagination
+- `src/lib/expenses/reports.ts`: currency-separated spending analytics
+- `src/lib/expenses/receipts.ts`: private receipt validation and object-path rules
 
 ## Workspace selection
 
@@ -105,3 +109,13 @@ are validated by a database trigger against organization membership, and member
 removal unassigns deals without blocking the team workflow. The browser's drag
 payload is untrusted; every transition repeats server authorization and executes
 under RLS with optimistic version checks.
+
+## Expense management
+
+Expenses reference categories through composite organization keys and use
+integer minor units. Status and payment-date consistency is enforced by Zod and
+database constraints. Important mutations emit audit rows in the same database
+transaction. Receipts are stored outside PostgreSQL in the private
+`expense-receipts` bucket; the database stores only validated metadata and an
+organization-prefixed object path. Downloads use short-lived signed URLs after
+fresh authentication and workspace authorization.

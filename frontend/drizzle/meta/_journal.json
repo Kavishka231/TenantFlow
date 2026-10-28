@@ -169,6 +169,13 @@
       "when": 1793210931075,
       "tag": "0023_goofy_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793211558981,
+      "tag": "0024_bright_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }
