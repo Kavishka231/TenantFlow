@@ -1,0 +1,2 @@
+ALTER TABLE "stripe_customers" ADD CONSTRAINT "stripe_customers_organization_customer_unique" UNIQUE("organization_id","stripe_customer_id");--> statement-breakpoint
+ALTER TABLE "organization_subscriptions" ADD CONSTRAINT "organization_subscriptions_customer_mapping_fk" FOREIGN KEY ("organization_id","stripe_customer_id") REFERENCES "public"."stripe_customers"("organization_id","stripe_customer_id") ON DELETE cascade ON UPDATE no action;

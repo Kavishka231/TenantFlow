@@ -5,6 +5,7 @@ import type { z } from "zod";
 
 import { withUserContext } from "@/db/client";
 import { customers } from "@/db/schema";
+import { assertResourceCapacity } from "@/lib/billing/entitlements";
 import type {
   createCustomerSchema,
   deleteCustomerSchema,
@@ -27,6 +28,7 @@ export function createCustomerForUser(
   input: CreateCustomerInput,
 ) {
   return withUserContext(userId, async (transaction) => {
+    await assertResourceCapacity(transaction, input.organizationId, "customers");
     const [customer] = await transaction
       .insert(customers)
       .values({

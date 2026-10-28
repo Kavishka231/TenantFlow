@@ -5,6 +5,7 @@ import type { z } from "zod";
 
 import { withUserContext } from "@/db/client";
 import { customers, invoiceItems, invoices } from "@/db/schema";
+import { assertResourceCapacity } from "@/lib/billing/entitlements";
 import { calculateInvoiceTotals } from "@/lib/invoices/money";
 import type {
   createInvoiceSchema,
@@ -60,6 +61,7 @@ function itemRows(
 export function createInvoiceForUser(userId: string, input: CreateInvoiceInput) {
   return withUserContext(userId, async (transaction) => {
     await requireTenantCustomer(transaction, input.organizationId, input.customerId);
+    await assertResourceCapacity(transaction, input.organizationId, "invoices");
     await transaction.execute(sql`select pg_advisory_xact_lock(hashtextextended(${input.organizationId}, 6146))`);
 
     const [sequenceResult] = await transaction

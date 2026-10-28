@@ -60,13 +60,28 @@ and test identities have not been configured.
 - authorized PDF downloads and append-only financial activity events
 - Vitest, credential-gated PostgreSQL RLS, and Playwright coverage
 
-## Recommended Day 7
+## Day 7 — Stripe subscription billing
 
-1. provision the restricted runtime database role and disposable Auth identities in CI;
-2. run invoice isolation and browser suites against an isolated Supabase project;
-3. add organization billing-address and invoice-branding settings;
-4. add credit notes and payment reversals as immutable compensating records;
-5. add scheduled overdue reminders without exposing customer data to client jobs;
-6. design Stripe reconciliation only after manual-payment invariants pass continuously.
+- tenant-isolated subscription plans, Stripe mappings, and subscription state
+- owner-only test-mode Checkout and Customer Portal lifecycle management
+- signed, idempotent webhook synchronization and out-of-order protection
+- pricing and billing UI with plan capacity enforcement
+- credential-gated RLS, webhook, and Playwright coverage
 
-Stripe and automated payment processing remain unimplemented.
+## Day 8 — business dashboard analytics
+
+- tenant-scoped customer, invoice, payment, balance, and overdue metrics
+- monthly invoiced and paid series separated by currency
+- customer growth, invoice status distribution, and recent activity
+- responsive date-filtered dashboard with honest empty and error states
+- MEMBER read-only analytics backed by existing forced RLS
+- Vitest, credential-gated RLS, and Playwright coverage
+
+## Recommended Day 9
+
+1. provision disposable Auth identities and the restricted runtime role in CI;
+2. add exportable analytics reports only after privacy requirements are defined;
+3. add saved dashboard preferences without making filters authorization state;
+4. profile aggregate queries with realistic isolated test volumes;
+5. add accessible chart tables or CSV exports for assistive workflows;
+6. define exchange-rate requirements before offering cross-currency reporting.

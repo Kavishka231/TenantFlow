@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { CustomerActionState } from "@/lib/customers/action-state";
+import { PlanLimitError } from "@/lib/billing/entitlements";
 import {
   createCustomerForUser,
   CustomerConflictError,
@@ -72,6 +73,9 @@ export async function createCustomerAction(
     customerId = customer.id;
     revalidatePath(`/organizations/${result.data.organizationId}/customers`);
   } catch (error) {
+    if (error instanceof PlanLimitError) {
+      return { message: `${error.message} Ask the workspace owner to upgrade billing.`, status: "error" };
+    }
     if (error instanceof CustomerConflictError) {
       return { message: error.message, status: "error" };
     }

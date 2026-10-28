@@ -41,6 +41,7 @@ export default function Home() {
             <span className="text-lg">TenantFlow</span>
           </Link>
           <nav className="flex items-center gap-2" aria-label="Account navigation">
+            <Link href="/pricing" className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/10 hover:text-white")}>Pricing</Link>
             <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/10 hover:text-white")}>
               Log in
             </Link>

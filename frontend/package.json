@@ -14,7 +14,7 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
-    "test:rls": "vitest run src/db/rls.integration.test.ts src/db/team-rls.integration.test.ts src/db/customer-rls.integration.test.ts src/db/invoice-rls.integration.test.ts",
+    "test:rls": "vitest run src/db/rls.integration.test.ts src/db/team-rls.integration.test.ts src/db/customer-rls.integration.test.ts src/db/invoice-rls.integration.test.ts src/db/billing-rls.integration.test.ts src/db/analytics-rls.integration.test.ts",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },

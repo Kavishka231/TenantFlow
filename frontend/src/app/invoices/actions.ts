@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { InvoiceActionState } from "@/lib/invoices/action-state";
+import { PlanLimitError } from "@/lib/billing/entitlements";
 import { decimalToMinorUnits, percentageToBasisPoints } from "@/lib/invoices/money";
 import {
   createInvoiceForUser,
@@ -61,6 +62,7 @@ export async function createInvoiceAction(_state: InvoiceActionState, formData: 
     revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
     redirect(`/organizations/${result.data.organizationId}/invoices/${invoice.id}?created=1`);
   } catch (error) {
+    if (error instanceof PlanLimitError) return { message: `${error.message} Ask the workspace owner to upgrade billing.`, status: "error" };
     if (error instanceof InvoiceConflictError) return { message: error.message, status: "error" };
     throw error;
   }

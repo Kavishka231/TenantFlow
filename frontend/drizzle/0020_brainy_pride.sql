@@ -1,0 +1,2 @@
+CREATE INDEX "invoices_organization_issue_date_idx" ON "invoices" USING btree ("organization_id","issue_date");--> statement-breakpoint
+CREATE INDEX "payment_records_organization_payment_date_idx" ON "payment_records" USING btree ("organization_id","payment_date");
