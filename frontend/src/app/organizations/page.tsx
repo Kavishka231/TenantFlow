@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { switchWorkspaceAction } from "@/app/organizations/actions";
 import { buttonVariants, Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { listOrganizationsForUser } from "@/lib/organizations/list";
+import { listOrganizationsThroughBackend } from "@/lib/backend/organizations";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,13 @@ async function OrganizationList() {
     redirect("/login");
   }
 
-  const organizations = await listOrganizationsForUser(user.id);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const organizations = await listOrganizationsThroughBackend(
+    user.id,
+    session?.access_token,
+  );
 
   if (organizations.length === 0) {
     return (
