@@ -31,3 +31,10 @@ def test_only_owner_can_manage_billing() -> None:
     assert not role_has_permission(
         OrganizationRole.MEMBER, OrganizationPermission.MANAGE_BILLING
     )
+
+
+def test_only_owner_can_transfer_ownership() -> None:
+    permission = OrganizationPermission.MANAGE_OWNERSHIP
+    assert role_has_permission(OrganizationRole.OWNER, permission)
+    assert not role_has_permission(OrganizationRole.ADMIN, permission)
+    assert not role_has_permission(OrganizationRole.MEMBER, permission)

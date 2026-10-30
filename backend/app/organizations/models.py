@@ -29,6 +29,7 @@ class OrganizationPermission(StrEnum):
     READ_WORKSPACE = "read_workspace"
     UPDATE_ORGANIZATION = "update_organization"
     MANAGE_MEMBERS = "manage_members"
+    MANAGE_OWNERSHIP = "manage_ownership"
     DELETE_ORGANIZATION = "delete_organization"
     READ_CUSTOMERS = "read_customers"
     MANAGE_CUSTOMERS = "manage_customers"
