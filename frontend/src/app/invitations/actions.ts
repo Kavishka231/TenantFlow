@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 
+import { acceptInvitationThroughBackend } from "@/lib/backend/team";
 import { setSelectedWorkspace } from "@/lib/organizations/workspace";
 import {
-  acceptInvitationForUser,
   InvalidInvitationError,
 } from "@/lib/team/acceptance";
 import type { TeamActionState } from "@/lib/team/action-state";
@@ -40,7 +40,14 @@ export async function acceptInvitationAction(
   }
 
   try {
-    const invitation = await acceptInvitationForUser(user.id, tokenResult.data);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const invitation = await acceptInvitationThroughBackend(
+      user.id,
+      session?.access_token,
+      tokenResult.data,
+    );
     await setSelectedWorkspace(invitation.organizationId);
   } catch (error) {
     return {

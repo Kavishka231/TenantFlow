@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { updateOrganizationThroughBackend } from "@/lib/backend/organizations";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
-import { updateOrganizationForUser } from "@/lib/organizations/settings";
 import { updateOrganizationSchema } from "@/lib/organizations/validation";
 import type { TeamActionState } from "@/lib/team/action-state";
 import { createClient } from "@/lib/supabase/server";
@@ -40,7 +40,14 @@ export async function updateOrganizationAction(
       result.data.organizationId,
       "update_organization",
     );
-    const updated = await updateOrganizationForUser(user.id, result.data);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const updated = await updateOrganizationThroughBackend(
+      user.id,
+      session?.access_token,
+      result.data,
+    );
 
     if (!updated) {
       return { message: "The organization was not updated.", status: "error" };

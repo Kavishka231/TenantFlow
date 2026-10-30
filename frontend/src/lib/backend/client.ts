@@ -8,6 +8,16 @@ export type BackendResult =
   | { enabled: false }
   | { enabled: true; data: unknown };
 
+export class BackendApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string | undefined,
+  ) {
+    super(`FastAPI request failed (${status}).`);
+    this.name = "BackendApiError";
+  }
+}
+
 export async function backendRequest(
   path: string,
   accessToken: string | undefined,
@@ -33,7 +43,18 @@ export async function backendRequest(
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
-    throw new Error(`FastAPI request failed (${response.status}).`);
+    const body = await response.json().catch(() => null);
+    const code =
+      typeof body === "object" &&
+      body !== null &&
+      "error" in body &&
+      typeof body.error === "object" &&
+      body.error !== null &&
+      "code" in body.error &&
+      typeof body.error.code === "string"
+        ? body.error.code
+        : undefined;
+    throw new BackendApiError(response.status, code);
   }
   if (response.status === 204) {
     return { enabled: true, data: null };

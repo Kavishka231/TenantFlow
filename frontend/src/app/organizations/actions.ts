@@ -2,12 +2,10 @@
 
 import { redirect } from "next/navigation";
 
+import { createOrganizationThroughBackend } from "@/lib/backend/organizations";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import type { OrganizationActionState } from "@/lib/organizations/action-state";
-import {
-  createOrganizationForUser,
-  OrganizationSlugConflictError,
-} from "@/lib/organizations/create";
+import { OrganizationSlugConflictError } from "@/lib/organizations/create";
 import { createOrganizationSchema } from "@/lib/organizations/validation";
 import { setSelectedWorkspace } from "@/lib/organizations/workspace";
 import { workspaceIdSchema } from "@/lib/organizations/workspace-validation";
@@ -39,7 +37,14 @@ export async function createOrganizationAction(
   }
 
   try {
-    const organization = await createOrganizationForUser(user.id, result.data);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const organization = await createOrganizationThroughBackend(
+      user.id,
+      session?.access_token,
+      result.data,
+    );
     await setSelectedWorkspace(organization.id);
   } catch (error) {
     if (error instanceof OrganizationSlugConflictError) {

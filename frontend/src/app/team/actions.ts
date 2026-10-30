@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  changeMemberRoleThroughBackend,
+  createInvitationThroughBackend,
+  removeMemberThroughBackend,
+  revokeInvitationThroughBackend,
+  transferOwnershipThroughBackend,
+} from "@/lib/backend/team";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import type { TeamActionState } from "@/lib/team/action-state";
 import {
-  createInvitationForUser,
   DuplicateInvitationError,
-  revokeInvitationForUser,
 } from "@/lib/team/invitations";
 import {
   createInvitationSchema,
@@ -16,11 +21,6 @@ import {
   invitationIdSchema,
   memberMutationSchema,
 } from "@/lib/team/validation";
-import {
-  changeMemberRoleForUser,
-  removeMemberForUser,
-  transferOwnershipForUser,
-} from "@/lib/team/members";
 import { createClient } from "@/lib/supabase/server";
 
 async function getUser() {
@@ -33,7 +33,10 @@ async function getUser() {
     redirect("/login");
   }
 
-  return user;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return { accessToken: session?.access_token, user };
 }
 
 export async function createInvitationAction(
@@ -53,7 +56,7 @@ export async function createInvitationAction(
     };
   }
 
-  const user = await getUser();
+  const { accessToken, user } = await getUser();
 
   try {
     const organization = await requireOrganizationPermission(
@@ -61,8 +64,9 @@ export async function createInvitationAction(
       result.data.organizationId,
       "manage_members",
     );
-    const invitation = await createInvitationForUser(
+    const invitation = await createInvitationThroughBackend(
       user.id,
+      accessToken,
       organization.name,
       result.data,
     );
@@ -99,9 +103,14 @@ export async function revokeInvitationAction(formData: FormData) {
     return;
   }
 
-  const user = await getUser();
+  const { accessToken, user } = await getUser();
   await requireOrganizationPermission(user.id, organizationId, "manage_members");
-  await revokeInvitationForUser(user.id, invitationId.data);
+  await revokeInvitationThroughBackend(
+    user.id,
+    accessToken,
+    organizationId,
+    invitationId.data,
+  );
   revalidatePath(`/organizations/${organizationId}/team`);
 }
 
@@ -120,7 +129,7 @@ export async function changeMemberRoleAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  const user = await getUser();
+  const { accessToken, user } = await getUser();
   const organization = await requireOrganizationPermission(
     user.id,
     result.data.organizationId,
@@ -128,7 +137,7 @@ export async function changeMemberRoleAction(formData: FormData) {
   );
   const changed =
     organization.role === "owner" &&
-    (await changeMemberRoleForUser(user.id, result.data));
+    (await changeMemberRoleThroughBackend(user.id, accessToken, result.data));
 
   revalidatePath(`/organizations/${organization.id}/team`);
   redirect(teamPath(organization.id, changed ? "updated" : "denied"));
@@ -144,13 +153,17 @@ export async function removeMemberAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  const user = await getUser();
+  const { accessToken, user } = await getUser();
   const organization = await requireOrganizationPermission(
     user.id,
     result.data.organizationId,
     "manage_members",
   );
-  const changed = await removeMemberForUser(user.id, result.data);
+  const changed = await removeMemberThroughBackend(
+    user.id,
+    accessToken,
+    result.data,
+  );
 
   revalidatePath(`/organizations/${organization.id}/team`);
   redirect(teamPath(organization.id, changed ? "updated" : "denied"));
@@ -166,7 +179,7 @@ export async function transferOwnershipAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  const user = await getUser();
+  const { accessToken, user } = await getUser();
   const organization = await requireOrganizationPermission(
     user.id,
     result.data.organizationId,
@@ -174,7 +187,7 @@ export async function transferOwnershipAction(formData: FormData) {
   );
   const changed =
     organization.role === "owner" &&
-    (await transferOwnershipForUser(user.id, result.data));
+    (await transferOwnershipThroughBackend(user.id, accessToken, result.data));
 
   revalidatePath(`/organizations/${organization.id}/team`);
   redirect(teamPath(organization.id, changed ? "updated" : "denied"));
