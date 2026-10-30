@@ -96,7 +96,22 @@ and test identities have not been configured.
 - transactional audit events and currency-separated spending analytics
 - Vitest, credential-gated PostgreSQL RLS, and Playwright coverage
 
-## Recommended Day 11
+## Day 11 — Python backend foundation
+
+- modular FastAPI service with typed configuration and structured errors
+- SQLAlchemy/psycopg access through a validated restricted runtime role
+- strict rotating Supabase JWT verification
+- reusable authenticated and organization authorization dependencies
+- transaction-local RLS identity on pooled connections
+- health, current-user, and read-only organization endpoints
+- server-side Next.js adapter for one existing screen
+- Pytest, Ruff, mypy, Docker, and local-development documentation
+
+Live Auth and cross-tenant database verification remain blocked until a
+restricted `DATABASE_URL` and disposable development identities are supplied.
+Drizzle remains the only migration authority.
+
+## Recommended Day 12
 
 1. provision disposable Auth identities and the restricted runtime role in CI;
 2. add category administration with safe delete/reassignment rules;

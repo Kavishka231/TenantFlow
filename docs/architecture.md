@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow currently uses a single Next.js App Router application. Server Actions and Route Handlers own server-side behavior; a standalone backend is not justified yet.
+TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing Server Actions and Route Handlers remain authoritative until each replacement is verified; only organization reads currently have a Python implementation.
 
 ## Request flow
 
@@ -9,6 +9,7 @@ TenantFlow currently uses a single Next.js App Router application. Server Action
 3. server actions validate input and invoke Supabase Auth through the server client.
 4. organization operations verify membership and role permissions before using tenant context;
 5. direct PostgreSQL operations execute through `withUserContext` so RLS evaluates transaction-local identity claims.
+6. when `FASTAPI_INTERNAL_URL` is configured, the workspace screen forwards its Supabase token server-to-server to FastAPI, which independently verifies it and sets the same transaction-local RLS context.
 
 The browser client receives only Supabase's project URL and publishable key. Direct PostgreSQL connections, migration credentials, and privileged operations stay on the server.
 
@@ -44,6 +45,17 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/expenses/list.ts`: bounded expense search, filters, sorting, and pagination
 - `src/lib/expenses/reports.ts`: currency-separated spending analytics
 - `src/lib/expenses/receipts.ts`: private receipt validation and object-path rules
+- `../backend/app/auth/`: strict Supabase JWT verification and authenticated dependencies
+- `../backend/app/db/`: restricted SQLAlchemy sessions and transaction-local RLS context
+- `../backend/app/organizations/`: Python membership authorization and read services
+
+## Python migration boundary
+
+FastAPI does not receive migration credentials and does not use Alembic.
+Drizzle migrations remain the schema source of truth. The Python connection is
+validated at startup and rejected if it owns tenant tables, bypasses RLS, is a
+superuser, or does not inherit `authenticated`. No existing TypeScript business
+logic is removed merely because a Python endpoint exists.
 
 ## Workspace selection
 

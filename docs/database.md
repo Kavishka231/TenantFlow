@@ -65,6 +65,13 @@ receipt binaries remain in private Supabase Storage rather than PostgreSQL.
 
 Drizzle does not provide tenant isolation. Application queries must run through `withUserContext`, which opens a transaction and sets transaction-local Supabase-compatible JWT claims. Authorization checks remain required for every mutation.
 
+FastAPI uses the equivalent `rls_transaction` boundary in
+`backend/app/db/session.py`. It validates the runtime role on startup and sets
+claims with PostgreSQL transaction-local `set_config` calls before any tenant
+query. SQLAlchemy is an additional database client, not a migration system;
+Drizzle remains the sole migration source of truth and Alembic is intentionally
+absent.
+
 `MIGRATION_DATABASE_URL` is a separate server-only DDL credential used only by Drizzle Kit. It must never be available to the browser or normal application runtime.
 
 ## Isolation testing

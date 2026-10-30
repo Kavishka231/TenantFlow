@@ -1,10 +1,10 @@
 # TenantFlow
 
-TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Next.js, Supabase Auth, PostgreSQL Row-Level Security (RLS), and Drizzle ORM.
+TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Next.js, FastAPI, Supabase Auth, PostgreSQL Row-Level Security (RLS), and Drizzle ORM.
 
 ## Current status
 
-Day 10 adds tenant-isolated expense management and private receipts. Development migrations are applied through `0024`; restricted-runtime RLS, browser, and live Stripe verification remain credential-dependent:
+Day 11 starts the incremental Python migration with a read-only FastAPI slice. Development migrations remain applied through `0024`; restricted-runtime RLS, browser, live Auth, and live Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -58,6 +58,12 @@ Day 10 adds tenant-isolated expense management and private receipts. Development
 - private Supabase Storage receipts with validation and signed downloads
 - transaction-coupled expense audit events with non-sensitive metadata
 - currency-separated monthly spending and category dashboard reports
+- modular FastAPI service with structured logging, CORS, and consistent errors
+- rotating Supabase JWKS verification with strict issuer, audience, expiry, and role checks
+- fail-closed SQLAlchemy transactions that set authenticated RLS claims locally
+- reusable OWNER, ADMIN, and MEMBER authorization in Python
+- health, current-user, and read-only organization endpoints
+- server-only Next.js adapter for gradual screen-by-screen migration
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
@@ -65,8 +71,9 @@ TenantFlow subscription billing is separate from customers' manually tracked bus
 
 ```text
 TenantFlow/
+├── backend/               # FastAPI service (no competing migrations)
 ├── docs/                  # Architecture, database, security, and roadmap
-├── frontend/              # Next.js application and database migrations
+├── frontend/              # Next.js application and Drizzle migrations
 ├── .gitignore
 └── README.md
 ```
@@ -75,6 +82,7 @@ TenantFlow/
 
 - Node.js 22 LTS or compatible
 - npm 11 or compatible
+- Python 3.12 through 3.14
 - a Supabase development project
 - separate PostgreSQL runtime and migration roles
 
@@ -140,6 +148,12 @@ Start the application:
 ```bash
 npm run dev
 ```
+
+Start the optional FastAPI read path in a second terminal by following
+[backend/README.md](backend/README.md), then set
+`FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in the frontend environment.
+Without that value, the existing verified TypeScript implementation remains
+active.
 
 ## Verification commands
 

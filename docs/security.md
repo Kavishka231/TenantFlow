@@ -113,4 +113,18 @@ Client-supplied organization IDs and the selected-workspace cookie are untrusted
 
 No service-role key is required by the application foundation. If privileged operations are added later, they must remain server-only and perform explicit authorization before bypassing RLS.
 
+## FastAPI authentication and RLS
+
+FastAPI accepts bearer tokens only after checking a rotating Supabase JWKS,
+approved asymmetric algorithms, issuer, audience, expiry, issued-at time,
+authenticated role, and UUID subject. The browser cannot supply an alternate
+user identity to database dependencies.
+
+Every SQLAlchemy request opens a transaction and uses `set_config(..., true)`
+to set both Supabase-compatible JWT claim settings on that same pooled
+connection. Transaction-local scope prevents identity leakage when the
+connection returns to the pool. Organization paths still bind the verified
+subject and requested organization in parameterized queries and return the
+same not-found response for absent and unauthorized tenants.
+
 RLS integration assertions refuse to run through a superuser, `BYPASSRLS` role, or tenant-table owner. A separate migration connection is used only to arrange and remove fixtures; every tested read and mutation uses the restricted runtime role.
