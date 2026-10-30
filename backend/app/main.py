@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.auth.jwt import SupabaseJwtVerifier
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
@@ -23,6 +24,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = create_database_engine(configured)
         app.state.database_engine = engine
         app.state.session_factory = create_session_factory(engine)
+        app.state.jwt_verifier = SupabaseJwtVerifier(configured)
         if configured.validate_database_role:
             await validate_runtime_role(engine)
         try:
