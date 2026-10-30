@@ -1,10 +1,8 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
 import { z } from "zod";
 
-import { getServerEnv } from "@/lib/env/server";
+import { backendRequest } from "@/lib/backend/client";
 import {
   listOrganizationsForUser,
   type OrganizationSummary,
@@ -23,31 +21,9 @@ export async function listOrganizationsThroughBackend(
   userId: string,
   accessToken: string | undefined,
 ): Promise<OrganizationSummary[]> {
-  const { FASTAPI_INTERNAL_URL } = getServerEnv();
-
-  if (!FASTAPI_INTERNAL_URL) {
+  const result = await backendRequest("/api/v1/organizations", accessToken);
+  if (!result.enabled) {
     return listOrganizationsForUser(userId);
   }
-
-  if (!accessToken) {
-    throw new Error("An authenticated Supabase session is required.");
-  }
-
-  const response = await fetch(
-    new URL("/api/v1/organizations", FASTAPI_INTERNAL_URL),
-    {
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "X-Request-ID": randomUUID(),
-      },
-      signal: AbortSignal.timeout(5_000),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`FastAPI organization request failed (${response.status}).`);
-  }
-
-  return organizationListSchema.parse(await response.json());
+  return organizationListSchema.parse(result.data);
 }

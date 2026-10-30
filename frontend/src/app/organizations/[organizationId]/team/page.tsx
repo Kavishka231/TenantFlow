@@ -9,9 +9,9 @@ import { InvitationForm } from "@/components/team/invitation-form";
 import { MemberActions } from "@/components/team/member-actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { listTeamThroughBackend } from "@/lib/backend/team";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
-import { listOrganizationTeam } from "@/lib/team/list";
 import { cn } from "@/lib/utils";
 import TeamLoading from "./loading";
 
@@ -35,8 +35,12 @@ async function TeamContent({
 
   const { organizationId } = await params;
   const organization = await authorizeTeamManagement(user.id, organizationId);
-  const { invitations, members } = await listOrganizationTeam(
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const { invitations, members } = await listTeamThroughBackend(
     user.id,
+    session?.access_token,
     organization.id,
   );
   const { teamStatus } = await searchParams;
