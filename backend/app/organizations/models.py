@@ -1,7 +1,22 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, StringConstraints
+
+OrganizationName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)
+]
+OrganizationSlug = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        to_lower=True,
+        min_length=2,
+        max_length=63,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    ),
+]
 
 
 class OrganizationRole(StrEnum):
@@ -33,3 +48,16 @@ class OrganizationSummary(BaseModel):
     name: str
     slug: str
     role: OrganizationRole
+
+
+class CreateOrganizationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: OrganizationName
+    slug: OrganizationSlug
+
+
+class UpdateOrganizationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: OrganizationName
