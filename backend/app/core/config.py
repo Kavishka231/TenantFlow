@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AnyHttpUrl, Field, PostgresDsn, field_validator
+from pydantic import AnyHttpUrl, Field, PostgresDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     validate_database_role: bool = True
+    frontend_app_url: AnyHttpUrl = AnyHttpUrl("http://localhost:3000")
+    invitation_delivery_webhook_url: AnyHttpUrl | None = None
+    invitation_delivery_webhook_secret: str | None = None
+    invitation_dev_outbox: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -26,6 +30,21 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @model_validator(mode="after")
+    def validate_invitation_delivery(self) -> "Settings":
+        if bool(self.invitation_delivery_webhook_url) != bool(
+            self.invitation_delivery_webhook_secret
+        ):
+            raise ValueError("Invitation webhook URL and secret must be configured together.")
+        if (
+            self.invitation_delivery_webhook_secret is not None
+            and len(self.invitation_delivery_webhook_secret) < 16
+        ):
+            raise ValueError("Invitation webhook secret must contain at least 16 characters.")
+        if self.environment == "production" and self.invitation_dev_outbox:
+            raise ValueError("The invitation development outbox is forbidden in production.")
+        return self
 
     @property
     def supabase_issuer(self) -> str:
