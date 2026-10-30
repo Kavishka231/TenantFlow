@@ -10,6 +10,7 @@ from app.api.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
+from app.db.session import create_database_engine, create_session_factory, validate_runtime_role
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -17,10 +18,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging(configured.log_level)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logging.getLogger(__name__).info("TenantFlow backend starting")
-        yield
-        logging.getLogger(__name__).info("TenantFlow backend stopped")
+        engine = create_database_engine(configured)
+        app.state.database_engine = engine
+        app.state.session_factory = create_session_factory(engine)
+        if configured.validate_database_role:
+            await validate_runtime_role(engine)
+        try:
+            yield
+        finally:
+            await engine.dispose()
+            logging.getLogger(__name__).info("TenantFlow backend stopped")
 
     app = FastAPI(
         title="TenantFlow API",
