@@ -7,6 +7,7 @@ from app.core.errors import ApiError
 from app.db.dependencies import RlsSession
 from app.organizations.authorization import require_organization_permission
 from app.organizations.models import OrganizationPermission, OrganizationSummary
+from app.team.audit import AuditEvent, list_audit_events
 from app.team.delivery import deliver_invitation
 from app.team.models import (
     ChangeMemberRoleRequest,
@@ -55,6 +56,17 @@ async def team_list(
     members = await list_team_members(session, organization_id)
     invitations = await list_pending_invitations(session, organization_id)
     return TeamResponse(members=members, invitations=invitations)
+
+
+@router.get("/audit", response_model=list[AuditEvent])
+async def audit_list(
+    organization_id: UUID,
+    organization: ManageTeam,
+    session: RlsSession,
+    limit: int = 50,
+) -> list[AuditEvent]:
+    del organization
+    return await list_audit_events(session, organization_id, limit)
 
 
 @router.post(
