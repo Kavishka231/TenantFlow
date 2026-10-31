@@ -12,10 +12,22 @@ from app.db.session import (
     validate_runtime_role,
 )
 from app.organizations.service import get_organization, list_organizations
+from app.team.audit import list_audit_events
+from app.team.models import CreateInvitationRequest
+from app.team.service import (
+    InvalidInvitationError,
+    accept_invitation,
+    change_member_role,
+    create_invitation,
+    remove_member,
+    transfer_ownership,
+)
 
 REQUIRED_VARIABLES = (
     "DATABASE_URL",
     "MIGRATION_DATABASE_URL",
+    "RLS_TEST_OWNER_ID",
+    "RLS_TEST_ADMIN_ID",
     "RLS_TEST_MEMBER_ID",
     "RLS_TEST_OUTSIDER_ID",
     "SUPABASE_URL",
@@ -32,6 +44,8 @@ async def test_runtime_context_cannot_cross_organization_boundary() -> None:
     migration_url = str(LIVE_ENV["MIGRATION_DATABASE_URL"])
     member_id = UUID(str(LIVE_ENV["RLS_TEST_MEMBER_ID"]))
     outsider_id = UUID(str(LIVE_ENV["RLS_TEST_OUTSIDER_ID"]))
+    owner_id = UUID(str(LIVE_ENV["RLS_TEST_OWNER_ID"]))
+    admin_id = UUID(str(LIVE_ENV["RLS_TEST_ADMIN_ID"]))
     organization_a = uuid4()
     organization_b = uuid4()
 
@@ -44,7 +58,7 @@ async def test_runtime_context_cannot_cross_organization_boundary() -> None:
             (
                 organization_a,
                 f"python-rls-a-{organization_a}",
-                member_id,
+                owner_id,
                 organization_b,
                 f"python-rls-b-{organization_b}",
                 outsider_id,
@@ -53,9 +67,19 @@ async def test_runtime_context_cannot_cross_organization_boundary() -> None:
         await fixtures.execute(
             """
             insert into public.organization_members (organization_id, user_id, role)
-            values (%s, %s, 'member'), (%s, %s, 'owner')
+            values (%s, %s, 'owner'), (%s, %s, 'admin'),
+                   (%s, %s, 'member'), (%s, %s, 'owner')
             """,
-            (organization_a, member_id, organization_b, outsider_id),
+            (
+                organization_a,
+                owner_id,
+                organization_a,
+                admin_id,
+                organization_a,
+                member_id,
+                organization_b,
+                outsider_id,
+            ),
         )
         await fixtures.commit()
 
@@ -75,6 +99,54 @@ async def test_runtime_context_cannot_cross_organization_boundary() -> None:
 
             assert [item.id for item in member_organizations] == [organization_a]
             assert cross_tenant is None
+
+            async with rls_transaction(session_factory, owner_id) as owner_session:
+                assert await change_member_role(
+                    owner_session, organization_a, member_id, "admin"
+                )
+                assert await change_member_role(
+                    owner_session, organization_a, member_id, "member"
+                )
+                assert await transfer_ownership(owner_session, organization_a, admin_id)
+
+            async with rls_transaction(session_factory, admin_id) as new_owner_session:
+                assert await transfer_ownership(
+                    new_owner_session, organization_a, owner_id
+                )
+
+            email_result = await fixtures.execute(
+                "select email from auth.users where id = %s", (outsider_id,)
+            )
+            email_row = await email_result.fetchone()
+            assert email_row is not None
+            async with rls_transaction(session_factory, owner_id) as owner_session:
+                _, _, token = await create_invitation(
+                    owner_session,
+                    organization_a,
+                    CreateInvitationRequest(email=str(email_row[0]), role="member"),
+                )
+
+            async with rls_transaction(session_factory, outsider_id) as outsider_session:
+                accepted = await accept_invitation(outsider_session, token)
+            assert accepted.organization_id == organization_a
+
+            with pytest.raises(InvalidInvitationError):
+                async with rls_transaction(
+                    session_factory, outsider_id
+                ) as outsider_session:
+                    await accept_invitation(outsider_session, token)
+
+            async with rls_transaction(session_factory, owner_id) as owner_session:
+                assert await remove_member(owner_session, organization_a, outsider_id)
+                events = await list_audit_events(owner_session, organization_a, 100)
+            event_types = {event.event_type for event in events}
+            assert {
+                "invitation_accepted",
+                "invitation_created",
+                "member_removed",
+                "member_role_changed",
+                "ownership_transferred",
+            } <= event_types
         finally:
             await engine.dispose()
             await fixtures.execute(
