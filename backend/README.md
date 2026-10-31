@@ -1,8 +1,8 @@
 # TenantFlow FastAPI backend
 
-This service is the first incremental Python backend slice. It verifies Supabase
+This service is TenantFlow's incremental Python backend. It verifies Supabase
 access tokens, establishes transaction-local PostgreSQL RLS identity, and
-serves health, current-user, and read-only organization endpoints. Drizzle in
+serves organization, team, invitation, and audit endpoints. Drizzle in
 `../frontend` remains the only migration source of truth.
 
 ## Local development
@@ -32,6 +32,13 @@ Supabase access token; it is never exposed through a public environment value.
 - `GET /api/v1/auth/me`
 - `GET /api/v1/organizations`
 - `GET /api/v1/organizations/{organization_id}`
+- `POST /api/v1/organizations`
+- `PATCH /api/v1/organizations/{organization_id}`
+- `GET /api/v1/organizations/{organization_id}/team`
+- membership role, removal, and ownership-transfer endpoints beneath `/team`
+- invitation create/revoke endpoints beneath `/team/invitations`
+- `POST /api/v1/invitations/accept`
+- `GET /api/v1/organizations/{organization_id}/team/audit`
 
 Interactive API docs are available at `/docs` outside production.
 
@@ -44,6 +51,11 @@ pytest
 ```
 
 The live RLS test additionally requires `DATABASE_URL`,
-`MIGRATION_DATABASE_URL`, `SUPABASE_URL`, `RLS_TEST_MEMBER_ID`, and
-`RLS_TEST_OUTSIDER_ID`. The identities must be disposable confirmed users in
+`MIGRATION_DATABASE_URL`, `SUPABASE_URL`, and all four `RLS_TEST_*_ID` values.
+The identities must be disposable confirmed users in
 the development project. Missing values produce an explicit skip, not a pass.
+
+Invitation delivery uses the existing server webhook contract. Configure
+`INVITATION_DELIVERY_WEBHOOK_URL` and a secret of at least 16 characters, or
+enable `INVITATION_DEV_OUTBOX` outside production. Only SHA-256 token hashes are
+stored; the plaintext acceptance URL is handed directly to the delivery path.

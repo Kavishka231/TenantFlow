@@ -127,4 +127,16 @@ connection returns to the pool. Organization paths still bind the verified
 subject and requested organization in parameterized queries and return the
 same not-found response for absent and unauthorized tenants.
 
+Python team mutations call the existing security-definer functions with the
+verified transaction identity. Those functions take organization-scoped locks,
+protect the final owner, restrict ADMIN operations to MEMBER targets, and write
+audit events in the same transaction. Ownership cannot be granted through the
+generic role endpoint.
+
+Invitation tokens contain 256 bits of randomness and are persisted only as
+SHA-256 hashes. Acceptance delegates verified-email, expiry, recipient,
+single-use, and existing-membership checks to the existing locked PostgreSQL
+function. Plaintext links go only to the configured webhook or the
+development-only gitignored outbox.
+
 RLS integration assertions refuse to run through a superuser, `BYPASSRLS` role, or tenant-table owner. A separate migration connection is used only to arrange and remove fixtures; every tested read and mutation uses the restricted runtime role.

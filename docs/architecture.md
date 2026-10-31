@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing Server Actions and Route Handlers remain authoritative until each replacement is verified; only organization reads currently have a Python implementation.
+TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization and team screens can now use Python APIs through a server-only adapter.
 
 ## Request flow
 
@@ -48,6 +48,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `../backend/app/auth/`: strict Supabase JWT verification and authenticated dependencies
 - `../backend/app/db/`: restricted SQLAlchemy sessions and transaction-local RLS context
 - `../backend/app/organizations/`: Python membership authorization and read services
+- `../backend/app/team/`: team mutations, invitations, delivery, and audit reads
 
 ## Python migration boundary
 
@@ -56,6 +57,12 @@ Drizzle migrations remain the schema source of truth. The Python connection is
 validated at startup and rejected if it owns tenant tables, bypasses RLS, is a
 superuser, or does not inherit `authenticated`. No existing TypeScript business
 logic is removed merely because a Python endpoint exists.
+
+Organization creation inserts the workspace, OWNER membership, pipeline stages,
+and expense categories in one authenticated transaction. Team mutations call
+the existing PostgreSQL functions rather than recreating locking and role
+rules in Python. Invitation creation commits the hash and audit event before
+external delivery; delivery failure leaves a revocable pending invitation.
 
 ## Workspace selection
 

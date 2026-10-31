@@ -111,7 +111,20 @@ Live Auth and cross-tenant database verification remain blocked until a
 restricted `DATABASE_URL` and disposable development identities are supplied.
 Drizzle remains the only migration authority.
 
-## Recommended Day 12
+## Day 12 — Python organization and team management
+
+- authenticated organization creation, listing, and updates
+- reusable Python OWNER, ADMIN, and MEMBER authorization
+- team reads, role changes, removal, and secure ownership transfer
+- expiring hashed invitations with acceptance and revocation
+- existing locked PostgreSQL functions and audit triggers reused unchanged
+- server-only Next.js adapters with TypeScript fallback behavior
+- Pytest and credential-gated cross-tenant lifecycle coverage
+
+Live tenant-isolation and browser verification remain required before the
+Python feature branches can merge into `main`.
+
+## Recommended Day 13
 
 1. provision disposable Auth identities and the restricted runtime role in CI;
 2. add category administration with safe delete/reassignment rules;
