@@ -23,3 +23,6 @@ async def get_rls_session(
 
 
 RlsSession = Annotated[AsyncSession, Depends(get_rls_session)]
+SessionFactory = Annotated[
+    async_sessionmaker[AsyncSession], Depends(get_session_factory)
+]

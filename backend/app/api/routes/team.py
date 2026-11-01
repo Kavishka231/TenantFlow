@@ -3,10 +3,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 
+from app.auth.dependencies import CurrentUser
 from app.core.errors import ApiError
-from app.db.dependencies import RlsSession
+from app.db.dependencies import RlsSession, SessionFactory
+from app.db.session import rls_transaction
 from app.organizations.authorization import require_organization_permission
 from app.organizations.models import OrganizationPermission, OrganizationSummary
+from app.organizations.permissions import role_has_permission
+from app.organizations.service import get_organization
 from app.team.audit import AuditEvent, list_audit_events
 from app.team.delivery import deliver_invitation
 from app.team.models import (
@@ -77,15 +81,24 @@ async def audit_list(
 async def invitation_create(
     organization_id: UUID,
     body: CreateInvitationRequest,
-    organization: ManageTeam,
-    session: RlsSession,
+    user: CurrentUser,
+    session_factory: SessionFactory,
     request: Request,
 ) -> InvitationCreatedResponse:
     try:
-        invitation_id, expires_at, token = await create_invitation(
-            session, organization_id, body
-        )
-        await session.commit()
+        async with rls_transaction(session_factory, user.id) as session:
+            organization = await get_organization(session, user.id, organization_id)
+            if organization is None or not role_has_permission(
+                organization.role, OrganizationPermission.MANAGE_MEMBERS
+            ):
+                raise ApiError(
+                    status.HTTP_404_NOT_FOUND,
+                    "organization_not_found",
+                    "The organization was not found.",
+                )
+            invitation_id, expires_at, token = await create_invitation(
+                session, organization_id, body
+            )
     except DuplicateInvitationError as error:
         raise ApiError(
             status.HTTP_409_CONFLICT,
