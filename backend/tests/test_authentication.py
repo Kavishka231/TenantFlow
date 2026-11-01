@@ -116,3 +116,47 @@ def test_auth_me_returns_verified_identity(
     assert response.status_code == 200
     assert response.json()["email"] == "user@example.com"
     assert response.json()["role"] == "authenticated"
+
+
+def test_expired_token_returns_stable_unauthorized_response(
+    client: TestClient, settings: Settings, private_keys: dict[str, Any]
+) -> None:
+    key = private_keys["key-one"]
+    cast(FastAPI, client.app).state.jwt_verifier = SupabaseJwtVerifier(
+        settings, Keys({"key-one": key.public_key()})
+    )
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={
+            "Authorization": (
+                f"Bearer {make_token(settings, key, expires_delta=timedelta(minutes=-5))}"
+            )
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "invalid_access_token"
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+@pytest.mark.parametrize(
+    ("path", "authorization"),
+    [
+        ("/api/v1/auth/me", "Bearer malformed-token"),
+        ("/api/v1/auth/me", "Basic credentials"),
+        ("/api/v1/organizations", None),
+    ],
+)
+def test_protected_endpoints_reject_unverified_requests(
+    client: TestClient, path: str, authorization: str | None
+) -> None:
+    headers = {"Authorization": authorization} if authorization else {}
+
+    response = client.get(path, headers=headers)
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] in {
+        "authentication_required",
+        "invalid_access_token",
+    }
