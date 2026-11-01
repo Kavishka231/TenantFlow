@@ -130,3 +130,21 @@ def test_invitation_acceptance_contract_hashes_token_before_query(
     query_parameters = raw_session.execute.await_args.args[1]
     assert query_parameters["token_hash"] != plaintext_token
     assert len(query_parameters["token_hash"]) == 64
+
+
+def test_validation_errors_are_serializable_and_do_not_echo_input(
+    client: TestClient,
+) -> None:
+    raw_session = AsyncMock()
+    invalid_token = "contains spaces and must never be echoed" * 2
+
+    with authenticated_api(client, raw_session):
+        response = client.post(
+            "/api/v1/invitations/accept", json={"token": invalid_token}
+        )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "validation_error"
+    assert invalid_token not in response.text
+    assert set(body["error"]["details"][0]) == {"location", "message", "type"}
