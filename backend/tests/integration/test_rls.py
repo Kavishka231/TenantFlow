@@ -1,5 +1,4 @@
-import os
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import psycopg
 import pytest
@@ -22,30 +21,23 @@ from app.team.service import (
     remove_member,
     transfer_ownership,
 )
+from tests.integration.config import parse_live_test_config
 
-REQUIRED_VARIABLES = (
-    "DATABASE_URL",
-    "MIGRATION_DATABASE_URL",
-    "RLS_TEST_OWNER_ID",
-    "RLS_TEST_ADMIN_ID",
-    "RLS_TEST_MEMBER_ID",
-    "RLS_TEST_OUTSIDER_ID",
-    "SUPABASE_URL",
-)
-LIVE_ENV = {name: os.getenv(name) for name in REQUIRED_VARIABLES}
+LIVE_ENV = parse_live_test_config()
 pytestmark = pytest.mark.skipif(
-    not all(LIVE_ENV.values()),
+    LIVE_ENV is None,
     reason="live RLS credentials and disposable test identities are not configured",
 )
 
 
 async def test_runtime_context_cannot_cross_organization_boundary() -> None:
-    runtime_url = str(LIVE_ENV["DATABASE_URL"])
-    migration_url = str(LIVE_ENV["MIGRATION_DATABASE_URL"])
-    member_id = UUID(str(LIVE_ENV["RLS_TEST_MEMBER_ID"]))
-    outsider_id = UUID(str(LIVE_ENV["RLS_TEST_OUTSIDER_ID"]))
-    owner_id = UUID(str(LIVE_ENV["RLS_TEST_OWNER_ID"]))
-    admin_id = UUID(str(LIVE_ENV["RLS_TEST_ADMIN_ID"]))
+    assert LIVE_ENV is not None
+    runtime_url = str(LIVE_ENV.DATABASE_URL)
+    migration_url = str(LIVE_ENV.MIGRATION_DATABASE_URL)
+    member_id = LIVE_ENV.RLS_TEST_MEMBER_ID
+    outsider_id = LIVE_ENV.RLS_TEST_OUTSIDER_ID
+    owner_id = LIVE_ENV.RLS_TEST_OWNER_ID
+    admin_id = LIVE_ENV.RLS_TEST_ADMIN_ID
     organization_a = uuid4()
     organization_b = uuid4()
 
@@ -85,7 +77,7 @@ async def test_runtime_context_cannot_cross_organization_boundary() -> None:
 
         settings = Settings(
             database_url=runtime_url,
-            supabase_url=str(LIVE_ENV["SUPABASE_URL"]),
+            supabase_url=str(LIVE_ENV.SUPABASE_URL),
         )
         engine = create_database_engine(settings)
         try:
