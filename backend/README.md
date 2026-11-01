@@ -48,6 +48,7 @@ Interactive API docs are available at `/docs` outside production.
 ruff check app tests
 mypy app tests
 pytest
+tenantflow-readiness
 ```
 
 The live RLS test additionally requires `DATABASE_URL`,
@@ -59,3 +60,23 @@ Invitation delivery uses the existing server webhook contract. Configure
 `INVITATION_DELIVERY_WEBHOOK_URL` and a secret of at least 16 characters, or
 enable `INVITATION_DEV_OUTBOX` outside production. Only SHA-256 token hashes are
 stored; the plaintext acceptance URL is handed directly to the delivery path.
+
+## Live integration setup
+
+Copy `.env.test.example` to the gitignored `.env.test.local`. Create four
+disposable, confirmed users through Supabase Auth and use their UUIDs for the
+four `RLS_TEST_*_ID` values. Never insert rows directly into `auth.users`.
+
+The runtime database login must inherit `authenticated` while remaining a
+non-owner without `SUPERUSER` or `BYPASSRLS`:
+
+```sql
+CREATE ROLE tenantflow_runtime_login LOGIN PASSWORD 'generated-development-secret'
+  NOSUPERUSER NOBYPASSRLS INHERIT;
+GRANT authenticated TO tenantflow_runtime_login;
+```
+
+Use that login only for `DATABASE_URL`. Keep the migration connection separate.
+`tenantflow-readiness` prints only booleans and counts; it validates the role,
+database connections, migration count, and presence of all four profiles
+without displaying credentials or identity values.

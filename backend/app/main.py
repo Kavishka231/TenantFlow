@@ -36,6 +36,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="TenantFlow API",
         version="0.1.0",
+        description=(
+            "Authenticated TenantFlow APIs. Every tenant request verifies a Supabase "
+            "JWT and executes through transaction-local PostgreSQL RLS context."
+        ),
         docs_url="/docs" if configured.environment != "production" else None,
         redoc_url=None,
         lifespan=lifespan,

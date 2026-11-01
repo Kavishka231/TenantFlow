@@ -139,4 +139,22 @@ single-use, and existing-membership checks to the existing locked PostgreSQL
 function. Plaintext links go only to the configured webhook or the
 development-only gitignored outbox.
 
+## Integration verification
+
+Live verification uses two deliberately separate connections. The migration
+connection may arrange and remove disposable fixtures. Every asserted tenant
+operation uses a login that inherits `authenticated`, owns no tenant table, and
+has neither `SUPERUSER` nor `BYPASSRLS`. The readiness command fails before the
+suite when these properties or any disposable profile are missing.
+
+Four confirmed development Auth users represent OWNER, ADMIN, MEMBER, and an
+outsider. They must be created through Supabase Auth so `auth.users` and
+`profiles` remain consistent. Test files are gitignored and credentials must
+never be copied into source, command output, screenshots, or CI logs.
+
+Invitation delivery begins only after its RLS transaction commits. Validation
+errors expose field locations, stable types, and messages but omit submitted
+values and raw validator exceptions. Unexpected errors use a request ID and a
+generic response while full diagnostics remain server-side.
+
 RLS integration assertions refuse to run through a superuser, `BYPASSRLS` role, or tenant-table owner. A separate migration connection is used only to arrange and remove fixtures; every tested read and mutation uses the restricted runtime role.

@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 12 extends the incremental Python migration through organization and team management. Development migrations remain applied through `0024`; restricted-runtime RLS, browser, live Auth, and live Stripe verification remain credential-dependent:
+Day 13 adds FastAPI integration-security verification and a safe readiness harness. Development migrations remain applied through `0024`; live RLS, browser, Auth, and Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -69,6 +69,11 @@ Day 12 extends the incremental Python migration through organization and team ma
 - hashed, expiring invitation creation, acceptance, replay protection, and revocation
 - transactional membership and organization audit events through existing database triggers
 - server-only Next.js organization/team mutation adapters with TypeScript fallbacks
+- safe readiness checks for runtime-role properties, migrations, and disposable identities
+- HTTP contract coverage for expired JWTs, protected APIs, validation, and invitation hashing
+- executable Next.js-to-FastAPI adapter tests
+- delivery ordering that commits invitations before external notification
+- structured API errors that never echo submitted values or raw exception objects
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 

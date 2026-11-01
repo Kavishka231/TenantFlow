@@ -126,6 +126,22 @@ Python feature branches can merge into `main`.
 
 ## Recommended Day 13
 
+## Day 13 — FastAPI integration and security verification
+
+- centralized gitignored live-test configuration
+- restricted-role, migration, and identity readiness diagnostics
+- expired, malformed, missing, and unauthorized JWT HTTP coverage
+- organization and invitation REST contract tests
+- Next.js server adapter integration tests
+- post-commit invitation delivery ordering
+- sanitized structured validation and unexpected-error responses
+
+Live PostgreSQL RLS and Playwright execution still require the restricted
+runtime login and disposable confirmed accounts described in the security
+documentation. Skipped checks do not satisfy the merge gate.
+
+## Recommended Day 14
+
 1. provision disposable Auth identities and the restricted runtime role in CI;
 2. add category administration with safe delete/reassignment rules;
 3. add receipt malware scanning before production deployment;
