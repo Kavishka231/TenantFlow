@@ -2,7 +2,7 @@
 
 This service is TenantFlow's incremental Python backend. It verifies Supabase
 access tokens, establishes transaction-local PostgreSQL RLS identity, and
-serves organization, team, invitation, and audit endpoints. Drizzle in
+serves organization, team, invitation, customer, and audit endpoints. Drizzle in
 `../frontend` remains the only migration source of truth.
 
 ## Local development
@@ -23,7 +23,7 @@ not own tenant tables, and is neither superuser nor `BYPASSRLS`. Startup fails
 closed if this invariant is not met. Never use `MIGRATION_DATABASE_URL` here.
 
 Set `FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in `frontend/.env.local` to
-route the workspace list through this service. The Next.js server forwards the
+route supported server-side operations through this service. The Next.js server forwards the
 Supabase access token; it is never exposed through a public environment value.
 
 ## Endpoints
@@ -39,6 +39,13 @@ Supabase access token; it is never exposed through a public environment value.
 - invitation create/revoke endpoints beneath `/team/invitations`
 - `POST /api/v1/invitations/accept`
 - `GET /api/v1/organizations/{organization_id}/team/audit`
+- customer create/list/detail/update/delete endpoints beneath
+  `/api/v1/organizations/{organization_id}/customers`
+
+Customer list queries accept `q`, `status`, an allowlisted `sort`, `page`, and
+`page_size` of 10, 25, or 50. OWNER and ADMIN can mutate customer records;
+MEMBER is read-only. Update and delete requests must include the current
+positive `version` and return `customer_version_conflict` when stale.
 
 Interactive API docs are available at `/docs` outside production.
 

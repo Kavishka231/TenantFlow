@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization and team screens can now use Python APIs through a server-only adapter.
+TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, and customer screens can use Python APIs through server-only adapters.
 
 ## Request flow
 
@@ -28,7 +28,8 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/team/audit.ts`: tenant-authorized audit reads
 - `src/lib/customers/validation.ts`: customer input and mutation validation
 - `src/lib/customers/mutations.ts`: tenant-qualified customer writes
-- `src/lib/customers/list.ts`: bounded customer search, filtering, sorting, and pagination
+- `src/lib/customers/list.ts`: TypeScript fallback for bounded customer search, filtering, sorting, and pagination
+- `src/lib/backend/customers.ts`: server-only FastAPI customer adapter and response boundary
 - `src/lib/invoices/mutations.ts`: transactional draft and lifecycle operations
 - `src/lib/invoices/money.ts`: integer-minor-unit financial calculations
 - `src/lib/invoices/list.ts`: bounded invoice querying and pagination
@@ -49,6 +50,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `../backend/app/db/`: restricted SQLAlchemy sessions and transaction-local RLS context
 - `../backend/app/organizations/`: Python membership authorization and read services
 - `../backend/app/team/`: team mutations, invitations, delivery, and audit reads
+- `../backend/app/customers/`: existing-table mappings, schemas, and tenant-qualified customer services
 
 ## Python migration boundary
 
@@ -93,6 +95,14 @@ include a version predicate so stale forms cannot silently overwrite newer work.
 Search parameters are parsed into bounded values before queries are built.
 Search values remain SQL parameters, sorting uses an allowlist, and pagination
 is limited to 10, 25, or 50 records.
+
+FastAPI maps the existing `customers` table without creating a second schema or
+an Alembic migration history. Reads and writes run in the same restricted,
+transaction-local RLS session used by organization authorization. Existing
+database triggers remain responsible for version increments, immutable tenant
+identity, and transaction-coupled audit events. The Next.js adapter translates
+Python snake-case responses into the existing UI contract and falls back to
+Drizzle only when `FASTAPI_INTERNAL_URL` is not configured.
 
 ## Invoice management
 

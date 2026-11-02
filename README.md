@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 13 adds FastAPI integration-security verification and a safe readiness harness. Development migrations remain applied through `0024`; live RLS, browser, Auth, and Stripe verification remain credential-dependent:
+Day 14 migrates customer management behind the optional FastAPI adapter while preserving the verified TypeScript fallback. Development migrations remain applied through `0024`; live RLS, browser, Auth, and Stripe verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -74,6 +74,10 @@ Day 13 adds FastAPI integration-security verification and a safe readiness harne
 - executable Next.js-to-FastAPI adapter tests
 - delivery ordering that commits invitations before external notification
 - structured API errors that never echo submitted values or raw exception objects
+- SQLAlchemy customer mappings over the existing Drizzle-managed tables
+- FastAPI customer CRUD, search, filtering, deterministic sorting, and pagination
+- tenant-qualified customer authorization with optimistic version conflicts
+- server-only customer screen adapters with unchanged TypeScript fallbacks
 
 TenantFlow subscription billing is separate from customers' manually tracked business invoices. Stripe operates in Test Mode only; no real payments are accepted.
 
@@ -159,10 +163,11 @@ Start the application:
 npm run dev
 ```
 
-Start the optional FastAPI read path in a second terminal by following
+Start the optional FastAPI path in a second terminal by following
 [backend/README.md](backend/README.md), then set
 `FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in the frontend environment.
-Without that value, the existing verified TypeScript implementation remains
+With that value, organization, team, and customer server operations use
+FastAPI. Without it, the existing verified TypeScript implementation remains
 active.
 
 ## Verification commands
@@ -227,6 +232,7 @@ state; normal authenticated connections cannot execute that function.
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [API](docs/api.md)
 - [Database](docs/database.md)
 - [Security](docs/security.md)
 - [Roadmap](docs/roadmap.md)

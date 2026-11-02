@@ -140,11 +140,24 @@ Live PostgreSQL RLS and Playwright execution still require the restricted
 runtime login and disposable confirmed accounts described in the security
 documentation. Skipped checks do not satisfy the merge gate.
 
-## Recommended Day 14
+## Day 14 — Python customer management migration
+
+- SQLAlchemy mapping to the existing Drizzle-managed customer table
+- Pydantic customer validation and typed API responses
+- customer CRUD plus bounded search, filtering, sorting, and pagination
+- OWNER/ADMIN writes, MEMBER reads, and tenant-qualified statements under RLS
+- optimistic version conflicts and existing transactional audit triggers
+- server-only Next.js adapter with the TypeScript implementation retained as fallback
+- Pytest, Vitest, credential-gated RLS, and existing Playwright customer coverage
+
+Live RLS and browser execution still require a restricted runtime role and
+disposable confirmed identities. Until those checks run, this feature remains
+on its feature branch rather than being automatically merged.
+
+## Recommended Day 15
 
 1. provision disposable Auth identities and the restricted runtime role in CI;
-2. add category administration with safe delete/reassignment rules;
-3. add receipt malware scanning before production deployment;
-4. profile expense and analytics queries with realistic tenant volumes;
-5. add CSV export only after privacy and retention requirements are defined;
-6. define exchange-rate requirements before cross-currency profit reporting.
+2. run customer RLS and browser workflows against the development project;
+3. migrate invoice reads only after customer API parity is verified;
+4. add API performance budgets for large tenant customer lists;
+5. define retention/export requirements before adding customer data exports.

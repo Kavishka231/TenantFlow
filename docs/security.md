@@ -133,6 +133,14 @@ protect the final owner, restrict ADMIN operations to MEMBER targets, and write
 audit events in the same transaction. Ownership cannot be granted through the
 generic role endpoint.
 
+Python customer operations first authorize the requested organization using the
+verified JWT subject, then qualify every customer statement by both organization
+and customer identity. OWNER and ADMIN receive `MANAGE_CUSTOMERS`; MEMBER has
+only `READ_CUSTOMERS`. Search sorting is allowlisted, page size is bounded, and
+updates/deletes include a version predicate. Forced RLS remains the final
+boundary, and existing database triggers write audit events in the same
+transaction without placing contact details or notes in audit metadata.
+
 Invitation tokens contain 256 bits of randomness and are persisted only as
 SHA-256 hashes. Acceptance delegates verified-email, expiry, recipient,
 single-use, and existing-membership checks to the existing locked PostgreSQL
