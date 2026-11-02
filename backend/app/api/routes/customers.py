@@ -1,13 +1,16 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.auth.dependencies import CurrentUser
 from app.core.errors import ApiError
+from app.customers.models import CustomerStatus
 from app.customers.schemas import (
     CreateCustomerRequest,
+    CustomerListResponse,
     CustomerResponse,
+    CustomerSort,
     DeleteCustomerRequest,
     UpdateCustomerRequest,
 )
@@ -17,6 +20,7 @@ from app.customers.service import (
     create_customer,
     delete_customer,
     get_customer,
+    list_customers,
     update_customer,
 )
 from app.db.dependencies import RlsSession
@@ -41,6 +45,29 @@ def conflict_error() -> ApiError:
         status.HTTP_409_CONFLICT,
         "customer_version_conflict",
         "This customer changed since it was loaded.",
+    )
+
+
+@router.get("", response_model=CustomerListResponse)
+async def customer_list(
+    organization_id: UUID,
+    organization: ReadCustomers,
+    session: RlsSession,
+    q: Annotated[str, Query(max_length=100)] = "",
+    customer_status: Annotated[CustomerStatus | None, Query(alias="status")] = None,
+    sort: CustomerSort = CustomerSort.NAME_ASC,
+    page: Annotated[int, Query(gt=0)] = 1,
+    page_size: Literal[10, 25, 50] = 10,
+) -> CustomerListResponse:
+    del organization
+    return await list_customers(
+        session,
+        organization_id,
+        page=page,
+        page_size=page_size,
+        query=q.strip(),
+        sort=sort,
+        status=customer_status,
     )
 
 

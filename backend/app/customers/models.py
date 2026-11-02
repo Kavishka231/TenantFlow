@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, Integer, String, Text, func
@@ -20,7 +19,7 @@ class Customer(Base):
     """Read/write mapping for the existing Drizzle-managed customers table."""
 
     __tablename__ = "customers"
-    __table_args__: ClassVar[dict[str, str]] = {"schema": "public"}
+    __table_args__ = {"schema": "public"}  # noqa: RUF012
 
     id: Mapped[UUID] = mapped_column(
         PostgreSQLUUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

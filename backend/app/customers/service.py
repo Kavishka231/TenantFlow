@@ -1,10 +1,15 @@
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import asc, delete, desc, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.customers.models import Customer
-from app.customers.schemas import CreateCustomerRequest, UpdateCustomerRequest
+from app.customers.models import Customer, CustomerStatus
+from app.customers.schemas import (
+    CreateCustomerRequest,
+    CustomerListResponse,
+    CustomerSort,
+    UpdateCustomerRequest,
+)
 
 
 class CustomerConflictError(Exception):
@@ -13,6 +18,72 @@ class CustomerConflictError(Exception):
 
 class CustomerPlanLimitError(Exception):
     pass
+
+
+def escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+async def list_customers(
+    session: AsyncSession,
+    organization_id: UUID,
+    *,
+    page: int,
+    page_size: int,
+    query: str,
+    sort: CustomerSort,
+    status: CustomerStatus | None,
+) -> CustomerListResponse:
+    conditions = [Customer.organization_id == organization_id]
+    if status is not None:
+        conditions.append(Customer.status == status)
+    if query:
+        pattern = f"%{escape_like(query.lower())}%"
+        conditions.append(
+            or_(
+                func.lower(Customer.name).like(pattern, escape="\\"),
+                func.lower(func.coalesce(Customer.email, "")).like(
+                    pattern, escape="\\"
+                ),
+                func.lower(func.coalesce(Customer.phone, "")).like(
+                    pattern, escape="\\"
+                ),
+                func.lower(func.coalesce(Customer.company, "")).like(
+                    pattern, escape="\\"
+                ),
+            )
+        )
+
+    ordering = {
+        CustomerSort.NAME_ASC: (asc(Customer.name), asc(Customer.id)),
+        CustomerSort.NAME_DESC: (desc(Customer.name), desc(Customer.id)),
+        CustomerSort.NEWEST: (desc(Customer.created_at), desc(Customer.id)),
+        CustomerSort.OLDEST: (asc(Customer.created_at), asc(Customer.id)),
+        CustomerSort.RECENTLY_UPDATED: (
+            desc(Customer.updated_at),
+            desc(Customer.id),
+        ),
+    }[sort]
+    rows_result = await session.execute(
+        select(Customer)
+        .where(*conditions)
+        .order_by(*ordering)
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    )
+    total = int(
+        await session.scalar(
+            select(func.count()).select_from(Customer).where(*conditions)
+        )
+        or 0
+    )
+    return CustomerListResponse(
+        customers=list(rows_result.scalars().all()),
+        page=page,
+        page_count=max(1, (total + page_size - 1) // page_size),
+        page_size=page_size,
+        total=total,
+    )
 
 
 async def get_customer(
