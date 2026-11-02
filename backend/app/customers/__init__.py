@@ -1,0 +1,1 @@
+"""Tenant-isolated customer management."""
