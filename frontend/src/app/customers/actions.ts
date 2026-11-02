@@ -6,11 +6,11 @@ import { redirect } from "next/navigation";
 import type { CustomerActionState } from "@/lib/customers/action-state";
 import { PlanLimitError } from "@/lib/billing/entitlements";
 import {
-  createCustomerForUser,
-  CustomerConflictError,
-  deleteCustomerForUser,
-  updateCustomerForUser,
-} from "@/lib/customers/mutations";
+  createCustomerThroughBackend,
+  deleteCustomerThroughBackend,
+  updateCustomerThroughBackend,
+} from "@/lib/backend/customers";
+import { CustomerConflictError } from "@/lib/customers/mutations";
 import {
   createCustomerSchema,
   deleteCustomerSchema,
@@ -29,7 +29,10 @@ async function requireUser() {
     redirect("/login");
   }
 
-  return user;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return { accessToken: session?.access_token, user };
 }
 
 function customerFormValues(formData: FormData) {
@@ -60,7 +63,7 @@ export async function createCustomerAction(
     };
   }
 
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
 
   let customerId: string;
   try {
@@ -69,12 +72,19 @@ export async function createCustomerAction(
       result.data.organizationId,
       "manage_customers",
     );
-    const customer = await createCustomerForUser(user.id, result.data);
+    const customer = await createCustomerThroughBackend(
+      user.id,
+      accessToken,
+      result.data,
+    );
     customerId = customer.id;
     revalidatePath(`/organizations/${result.data.organizationId}/customers`);
   } catch (error) {
     if (error instanceof PlanLimitError) {
-      return { message: `${error.message} Ask the workspace owner to upgrade billing.`, status: "error" };
+      return {
+        message: `${error.message} Ask the workspace owner to upgrade billing.`,
+        status: "error",
+      };
     }
     if (error instanceof CustomerConflictError) {
       return { message: error.message, status: "error" };
@@ -108,7 +118,7 @@ export async function updateCustomerAction(
     };
   }
 
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
 
   try {
     await requireOrganizationPermission(
@@ -116,7 +126,7 @@ export async function updateCustomerAction(
       result.data.organizationId,
       "manage_customers",
     );
-    await updateCustomerForUser(user.id, result.data);
+    await updateCustomerThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/customers`);
     revalidatePath(
       `/organizations/${result.data.organizationId}/customers/${result.data.customerId}`,
@@ -147,7 +157,7 @@ export async function deleteCustomerAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   await requireOrganizationPermission(
     user.id,
     result.data.organizationId,
@@ -155,7 +165,7 @@ export async function deleteCustomerAction(formData: FormData) {
   );
   let status = "deleted";
   try {
-    await deleteCustomerForUser(user.id, result.data);
+    await deleteCustomerThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/customers`);
   } catch (error) {
     if (error instanceof CustomerConflictError) {

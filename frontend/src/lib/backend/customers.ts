@@ -2,10 +2,26 @@ import "server-only";
 
 import { z } from "zod";
 
-import { backendRequest } from "@/lib/backend/client";
+import { PlanLimitError } from "@/lib/billing/entitlements";
+import { BackendApiError, backendRequest } from "@/lib/backend/client";
 import { getCustomerForUser } from "@/lib/customers/get";
 import { listCustomersForUser } from "@/lib/customers/list";
+import {
+  createCustomerForUser,
+  CustomerConflictError,
+  deleteCustomerForUser,
+  updateCustomerForUser,
+} from "@/lib/customers/mutations";
 import type { CustomerListQuery } from "@/lib/customers/query";
+import type {
+  createCustomerSchema,
+  deleteCustomerSchema,
+  updateCustomerSchema,
+} from "@/lib/customers/validation";
+
+type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
+type DeleteCustomerInput = z.infer<typeof deleteCustomerSchema>;
 
 const customerStatusSchema = z.enum(["lead", "active", "inactive"]);
 const customerListItemSchema = z
@@ -40,14 +56,12 @@ const customerSchema = z
     created_at: z.coerce.date(),
     updated_at: z.coerce.date(),
   })
-  .transform(
-    ({ organization_id, created_at, updated_at, ...customer }) => ({
-      ...customer,
-      organizationId: organization_id,
-      createdAt: created_at,
-      updatedAt: updated_at,
-    }),
-  );
+  .transform(({ organization_id, created_at, updated_at, ...customer }) => ({
+    ...customer,
+    organizationId: organization_id,
+    createdAt: created_at,
+    updatedAt: updated_at,
+  }));
 
 const customerListSchema = z
   .object({
@@ -102,4 +116,100 @@ export async function getCustomerThroughBackend(
     return getCustomerForUser(userId, organizationId, customerId);
   }
   return customerSchema.parse(result.data);
+}
+
+function customerBody(input: CreateCustomerInput | UpdateCustomerInput) {
+  return {
+    address: input.address,
+    company: input.company,
+    email: input.email,
+    name: input.name,
+    notes: input.notes,
+    phone: input.phone,
+    status: input.status,
+  };
+}
+
+export async function createCustomerThroughBackend(
+  userId: string,
+  accessToken: string | undefined,
+  input: CreateCustomerInput,
+) {
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/customers`,
+      accessToken,
+      { method: "POST", body: JSON.stringify(customerBody(input)) },
+    );
+    if (!result.enabled) {
+      return createCustomerForUser(userId, input);
+    }
+    return customerSchema.parse(result.data);
+  } catch (error) {
+    if (
+      error instanceof BackendApiError &&
+      error.code === "customer_plan_limit"
+    ) {
+      throw new PlanLimitError("customers");
+    }
+    throw error;
+  }
+}
+
+export async function updateCustomerThroughBackend(
+  userId: string,
+  accessToken: string | undefined,
+  input: UpdateCustomerInput,
+) {
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/customers/${input.customerId}`,
+      accessToken,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...customerBody(input),
+          version: input.version,
+        }),
+      },
+    );
+    if (!result.enabled) {
+      return updateCustomerForUser(userId, input);
+    }
+    return customerSchema.parse(result.data);
+  } catch (error) {
+    if (
+      error instanceof BackendApiError &&
+      error.code === "customer_version_conflict"
+    ) {
+      throw new CustomerConflictError();
+    }
+    throw error;
+  }
+}
+
+export async function deleteCustomerThroughBackend(
+  userId: string,
+  accessToken: string | undefined,
+  input: DeleteCustomerInput,
+) {
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/customers/${input.customerId}`,
+      accessToken,
+      { method: "DELETE", body: JSON.stringify({ version: input.version }) },
+    );
+    if (!result.enabled) {
+      return deleteCustomerForUser(userId, input);
+    }
+    return { id: input.customerId };
+  } catch (error) {
+    if (
+      error instanceof BackendApiError &&
+      error.code === "customer_version_conflict"
+    ) {
+      throw new CustomerConflictError();
+    }
+    throw error;
+  }
 }
