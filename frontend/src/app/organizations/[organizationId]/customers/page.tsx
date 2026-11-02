@@ -8,8 +8,8 @@ import { CustomerStatusBadge } from "@/components/customers/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { listCustomersThroughBackend } from "@/lib/backend/customers";
 import { customerListQuerySchema, type CustomerListQuery } from "@/lib/customers/query";
-import { listCustomersForUser } from "@/lib/customers/list";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,15 @@ async function CustomersContent({
     sort: first(rawQuery.sort),
     status: first(rawQuery.status),
   });
-  const result = await listCustomersForUser(user.id, organization.id, query);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const result = await listCustomersThroughBackend(
+    user.id,
+    session?.access_token,
+    organization.id,
+    query,
+  );
   const canManage = organization.role !== "member";
 
   return (

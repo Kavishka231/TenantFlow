@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { CustomerStatusBadge } from "@/components/customers/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCustomerForUser } from "@/lib/customers/get";
+import { getCustomerThroughBackend } from "@/lib/backend/customers";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,8 @@ async function CustomerContent({ params, searchParams }: { params: Promise<{ org
   if (!user) redirect("/login");
   const { organizationId, customerId } = await params;
   const organization = await authorize(user.id, organizationId);
-  const customer = await getCustomerForUser(user.id, organization.id, customerId);
+  const { data: { session } } = await supabase.auth.getSession();
+  const customer = await getCustomerThroughBackend(user.id, session?.access_token, organization.id, customerId);
   if (!customer) notFound();
   const notice = await searchParams;
   const canManage = organization.role !== "member";
