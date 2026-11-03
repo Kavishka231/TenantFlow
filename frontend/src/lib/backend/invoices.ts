@@ -139,7 +139,13 @@ export async function recordInvoicePaymentThroughBackend(userId: string, token: 
 }
 export async function getInvoicePdfThroughBackend(userId: string, token: string | undefined, organizationId: string, invoiceId: string, organizationName: string) {
   const result = await backendBinaryRequest(`/api/v1/organizations/${organizationId}/invoices/${invoiceId}/pdf`, token);
-  if (result.enabled) return Buffer.from(result.data);
+  if (result.enabled) return {
+    contentDisposition: result.headers.get("content-disposition") ?? "attachment; filename=invoice.pdf",
+    pdf: Buffer.from(result.data),
+  };
   const invoice = await getInvoiceForUser(userId, organizationId, invoiceId);
-  return invoice ? buildInvoicePdf(invoice, organizationName) : null;
+  return invoice ? {
+    contentDisposition: `attachment; filename="${invoice.invoiceNumber}.pdf"`,
+    pdf: buildInvoicePdf(invoice, organizationName),
+  } : null;
 }

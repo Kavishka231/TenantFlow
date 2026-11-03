@@ -33,7 +33,7 @@ vi.mock("@/lib/invoices/mutations", () => ({
 }));
 vi.mock("@/lib/invoices/pdf", () => ({ buildInvoicePdf: mocks.buildInvoicePdf }));
 
-import { createInvoiceThroughBackend, listInvoicesThroughBackend } from "./invoices";
+import { createInvoiceThroughBackend, getInvoicePdfThroughBackend, listInvoicesThroughBackend } from "./invoices";
 
 const organizationId = "10000000-0000-4000-8000-000000000001";
 const customerId = "20000000-0000-4000-8000-000000000001";
@@ -70,5 +70,16 @@ describe("invoice FastAPI adapter", () => {
     expect(JSON.parse(mocks.backendRequest.mock.calls[0]?.[2]?.body as string)).toMatchObject({
       customer_id: customerId, discount_minor: 100, items: [{ unit_price_minor: 500 }],
     });
+  });
+
+  it("preserves private PDF download metadata from FastAPI", async () => {
+    mocks.backendBinaryRequest.mockResolvedValue({
+      enabled: true,
+      data: Uint8Array.from([37, 80, 68, 70]).buffer,
+      headers: new Headers({ "content-disposition": 'attachment; filename="INV-000001.pdf"' }),
+    });
+    const result = await getInvoicePdfThroughBackend("user", "token", organizationId, invoiceId, "Acme");
+    expect(result?.contentDisposition).toContain("INV-000001.pdf");
+    expect(result?.pdf.toString("ascii")).toBe("%PDF");
   });
 });

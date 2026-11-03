@@ -10,12 +10,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ org
   try {
     const organization = await requireOrganizationPermission(user.id, organizationId, "read_invoices");
     const { data: { session } } = await supabase.auth.getSession();
-    const pdf = await getInvoicePdfThroughBackend(user.id, session?.access_token, organization.id, invoiceId, organization.name);
-    if (!pdf) return new Response("Not found", { status: 404 });
-    return new Response(new Uint8Array(pdf), {
+    const download = await getInvoicePdfThroughBackend(user.id, session?.access_token, organization.id, invoiceId, organization.name);
+    if (!download) return new Response("Not found", { status: 404 });
+    return new Response(new Uint8Array(download.pdf), {
       headers: {
         "Cache-Control": "private, no-store",
-        "Content-Disposition": "attachment; filename=invoice.pdf",
+        "Content-Disposition": download.contentDisposition,
         "Content-Type": "application/pdf",
       },
     });
