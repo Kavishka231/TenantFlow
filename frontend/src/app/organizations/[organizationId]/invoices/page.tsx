@@ -8,7 +8,7 @@ import { InvoiceStatusBadge } from "@/components/invoices/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { listInvoicesForUser } from "@/lib/invoices/list";
+import { listInvoicesThroughBackend } from "@/lib/backend/invoices";
 import { formatMinorUnits } from "@/lib/invoices/money";
 import { invoiceListQuerySchema, type InvoiceListQuery } from "@/lib/invoices/query";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -22,7 +22,8 @@ async function Content({ params, searchParams }: { params: Promise<{ organizatio
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect("/login");
   const { organizationId } = await params; const organization = await authorize(user.id, organizationId); const raw = await searchParams;
   const query = invoiceListQuerySchema.parse({ page: first(raw.page), pageSize: first(raw.pageSize), q: first(raw.q), sort: first(raw.sort), status: first(raw.status) });
-  const result = await listInvoicesForUser(user.id, organization.id, query); const canManage = organization.role !== "member";
+  const { data: { session } } = await supabase.auth.getSession();
+  const result = await listInvoicesThroughBackend(user.id, session?.access_token, organization.id, query); const canManage = organization.role !== "member";
   return <main className="min-h-screen bg-slate-50 px-6 py-10"><div className="mx-auto max-w-6xl space-y-6">
     <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}><ArrowLeft /> Back to dashboard</Link>
     <div className="flex flex-wrap items-end justify-between gap-4"><header><p className="text-sm font-medium text-indigo-600">{organization.name}</p><h1 className="mt-1 text-3xl font-semibold">Invoices</h1><p className="mt-2 text-muted-foreground">{result.total} invoice{result.total === 1 ? "" : "s"}</p></header>{canManage ? <Link href={`/organizations/${organization.id}/invoices/new`} className={buttonVariants()}><Plus /> New invoice</Link> : null}</div>
