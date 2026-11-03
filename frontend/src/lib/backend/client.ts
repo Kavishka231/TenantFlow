@@ -8,6 +8,10 @@ export type BackendResult =
   | { enabled: false }
   | { enabled: true; data: unknown };
 
+export type BackendBinaryResult =
+  | { enabled: false }
+  | { enabled: true; data: ArrayBuffer; headers: Headers };
+
 export class BackendApiError extends Error {
   constructor(
     readonly status: number,
@@ -60,4 +64,23 @@ export async function backendRequest(
     return { enabled: true, data: null };
   }
   return { enabled: true, data: await response.json() };
+}
+
+export async function backendBinaryRequest(
+  path: string,
+  accessToken: string | undefined,
+): Promise<BackendBinaryResult> {
+  const { FASTAPI_INTERNAL_URL } = getServerEnv();
+  if (!FASTAPI_INTERNAL_URL) return { enabled: false };
+  if (!accessToken) throw new Error("An authenticated Supabase session is required.");
+  const response = await fetch(new URL(path, FASTAPI_INTERNAL_URL), {
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "X-Request-ID": randomUUID(),
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new BackendApiError(response.status, undefined);
+  return { enabled: true, data: await response.arrayBuffer(), headers: response.headers };
 }

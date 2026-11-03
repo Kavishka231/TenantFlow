@@ -154,10 +154,22 @@ Live RLS and browser execution still require a restricted runtime role and
 disposable confirmed identities. Until those checks run, this feature remains
 on its feature branch rather than being automatically merged.
 
-## Recommended Day 15
+## Day 15 — Python invoice and payment management
 
-1. provision disposable Auth identities and the restricted runtime role in CI;
-2. run customer RLS and browser workflows against the development project;
-3. migrate invoice reads only after customer API parity is verified;
-4. add API performance budgets for large tenant customer lists;
-5. define retention/export requirements before adding customer data exports.
+- SQLAlchemy mappings for existing invoices, line items, and immutable payments
+- Pydantic validation and integer-minor-unit total calculation
+- tenant-authorized invoice CRUD, lifecycle transitions, and private PDFs
+- serialized numbering plus transactional, idempotent partial/full payments
+- server-only Next.js integration with the Drizzle fallback preserved
+- Pytest, Vitest, API contract, credential-gated RLS, and Playwright coverage
+
+Live RLS and browser verification remain mandatory before merging this security
+boundary to `main`. Missing disposable identities or a restricted runtime role
+is reported as a skip and leaves the feature branch unmerged.
+
+## Recommended Day 16
+
+1. provision the restricted runtime role and disposable Auth identities in CI;
+2. execute customer and invoice RLS plus browser workflows against development;
+3. add invoice API performance budgets and observability dashboards;
+4. migrate expense workflows only after invoice parity is verified.

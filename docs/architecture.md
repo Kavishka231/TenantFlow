@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, and customer screens can use Python APIs through server-only adapters.
+TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, customer, and invoice screens can use Python APIs through server-only adapters.
 
 ## Request flow
 
@@ -30,6 +30,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/customers/mutations.ts`: tenant-qualified customer writes
 - `src/lib/customers/list.ts`: TypeScript fallback for bounded customer search, filtering, sorting, and pagination
 - `src/lib/backend/customers.ts`: server-only FastAPI customer adapter and response boundary
+- `src/lib/backend/invoices.ts`: invoice API adapter, validation boundary, and Drizzle fallback
 - `src/lib/invoices/mutations.ts`: transactional draft and lifecycle operations
 - `src/lib/invoices/money.ts`: integer-minor-unit financial calculations
 - `src/lib/invoices/list.ts`: bounded invoice querying and pagination

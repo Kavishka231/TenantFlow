@@ -7,14 +7,14 @@ import type { InvoiceActionState } from "@/lib/invoices/action-state";
 import { PlanLimitError } from "@/lib/billing/entitlements";
 import { decimalToMinorUnits, percentageToBasisPoints } from "@/lib/invoices/money";
 import {
-  createInvoiceForUser,
-  cancelInvoiceForUser,
-  deleteInvoiceForUser,
-  InvoiceConflictError,
-  recordInvoicePaymentForUser,
-  sendInvoiceForUser,
-  updateInvoiceForUser,
-} from "@/lib/invoices/mutations";
+  cancelInvoiceThroughBackend,
+  createInvoiceThroughBackend,
+  deleteInvoiceThroughBackend,
+  recordInvoicePaymentThroughBackend,
+  sendInvoiceThroughBackend,
+  updateInvoiceThroughBackend,
+} from "@/lib/backend/invoices";
+import { InvoiceConflictError } from "@/lib/invoices/mutations";
 import {
   createInvoiceSchema,
   deleteInvoiceSchema,
@@ -29,7 +29,8 @@ async function requireUser() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  return user;
+  const { data: { session } } = await supabase.auth.getSession();
+  return { accessToken: session?.access_token, user };
 }
 
 function invoiceFormValues(formData: FormData) {
@@ -55,10 +56,10 @@ function invoiceFormValues(formData: FormData) {
 export async function createInvoiceAction(_state: InvoiceActionState, formData: FormData): Promise<InvoiceActionState> {
   const result = createInvoiceSchema.safeParse({ ...invoiceFormValues(formData), organizationId: formData.get("organizationId") });
   if (!result.success) return { message: result.error.issues[0]?.message ?? "Check the invoice details.", status: "error" };
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   try {
     await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-    const invoice = await createInvoiceForUser(user.id, result.data);
+    const invoice = await createInvoiceThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
     redirect(`/organizations/${result.data.organizationId}/invoices/${invoice.id}?created=1`);
   } catch (error) {
@@ -71,10 +72,10 @@ export async function createInvoiceAction(_state: InvoiceActionState, formData: 
 export async function updateInvoiceAction(_state: InvoiceActionState, formData: FormData): Promise<InvoiceActionState> {
   const result = updateInvoiceSchema.safeParse({ ...invoiceFormValues(formData), invoiceId: formData.get("invoiceId"), organizationId: formData.get("organizationId"), version: formData.get("version") });
   if (!result.success) return { message: result.error.issues[0]?.message ?? "Check the invoice details.", status: "error" };
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   try {
     await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-    await updateInvoiceForUser(user.id, result.data);
+    await updateInvoiceThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
     redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?updated=1`);
@@ -87,9 +88,9 @@ export async function updateInvoiceAction(_state: InvoiceActionState, formData: 
 export async function deleteInvoiceAction(formData: FormData) {
   const result = deleteInvoiceSchema.safeParse({ invoiceId: formData.get("invoiceId"), organizationId: formData.get("organizationId"), version: formData.get("version") });
   if (!result.success) redirect("/dashboard");
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-  await deleteInvoiceForUser(user.id, result.data);
+  await deleteInvoiceThroughBackend(user.id, accessToken, result.data);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
   redirect(`/organizations/${result.data.organizationId}/invoices?invoiceStatus=deleted`);
 }
@@ -101,9 +102,9 @@ export async function sendInvoiceAction(formData: FormData) {
     version: formData.get("version"),
   });
   if (!result.success) redirect("/dashboard");
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-  await sendInvoiceForUser(user.id, result.data);
+  await sendInvoiceThroughBackend(user.id, accessToken, result.data);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
   redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?sent=1`);
@@ -116,9 +117,9 @@ export async function cancelInvoiceAction(formData: FormData) {
     version: formData.get("version"),
   });
   if (!result.success) redirect("/dashboard");
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-  await cancelInvoiceForUser(user.id, result.data);
+  await cancelInvoiceThroughBackend(user.id, accessToken, result.data);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
   revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
   redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?cancelled=1`);
@@ -141,10 +142,10 @@ export async function recordPaymentAction(
   if (!result.success) {
     return { message: result.error.issues[0]?.message ?? "Check the payment details.", status: "error" };
   }
-  const user = await requireUser();
+  const { accessToken, user } = await requireUser();
   try {
     await requireOrganizationPermission(user.id, result.data.organizationId, "manage_invoices");
-    await recordInvoicePaymentForUser(user.id, result.data);
+    await recordInvoicePaymentThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
   } catch {
