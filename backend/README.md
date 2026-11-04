@@ -45,6 +45,8 @@ Supabase access token; it is never exposed through a public environment value.
   `/api/v1/organizations/{organization_id}/invoices`
 - deal CRUD, pipeline, options, transitions, notes, and metrics beneath
   `/api/v1/organizations/{organization_id}/deals`
+- expense/category CRUD, status transitions, analytics, and private receipt
+  endpoints beneath `/api/v1/organizations/{organization_id}/expenses`
 
 Customer list queries accept `q`, `status`, an allowlisted `sort`, `page`, and
 `page_size` of 10, 25, or 50. OWNER and ADMIN can mutate customer records;
@@ -60,6 +62,12 @@ Deal endpoints map the existing stages, deals, and activity tables. PostgreSQL
 RLS and triggers remain authoritative for tenant relationships, assignees,
 outcomes, optimistic versions, close timestamps, and activity events. Sales
 aggregates use integer minor units and group independently by currency.
+
+Expense endpoints map the existing Drizzle tables without migrations. The
+Storage gateway forwards the verified user's bearer token plus the public
+Supabase publishable key, so private bucket RLS remains authoritative; no
+service-role key is accepted. Receipt uploads are limited to PDF/JPEG/PNG/WebP
+and 5 MB, and downloads use 60-second signed URLs.
 
 Interactive API docs are available at `/docs` outside production.
 

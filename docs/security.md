@@ -115,6 +115,10 @@ count as executed when real database credentials and Auth identities are absent.
 - downloads use 60-second signed URLs and responses are non-cacheable;
 - audit metadata excludes amounts, vendor names, descriptions, filenames, and paths;
 - reports exclude cancelled expenses and never combine currencies.
+- FastAPI receipt requests forward the verified user token and public
+  publishable key to Storage, preserving the existing bucket RLS policies;
+- status changes follow an explicit correction-aware transition graph and are
+  rejected on stale versions or invalid transitions.
 
 Client-supplied organization IDs and the selected-workspace cookie are untrusted. Server code validates their format and resolves membership under the authenticated PostgreSQL claim context before use. Unauthorized and nonexistent workspace routes share the same not-found behavior.
 
