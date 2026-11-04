@@ -45,6 +45,26 @@ Draft writes and lifecycle requests carry a positive `version` to reject stale
 updates. The database remains authoritative for serialized numbering, lifecycle
 transitions, payment locking, RLS, and audit events.
 
+## Deal and pipeline endpoints
+
+| Method | Path | Permission | Purpose |
+| --- | --- | --- | --- |
+| `GET` / `POST` | `/organizations/{organization_id}/deals` | MEMBER+ / OWNER/ADMIN | Filter/page or create deals |
+| `GET` / `PATCH` / `DELETE` | `/organizations/{organization_id}/deals/{deal_id}` | MEMBER+ / OWNER/ADMIN | Read or mutate a current deal version |
+| `GET` | `/organizations/{organization_id}/deals/pipeline` | MEMBER+ | Read stages and Kanban cards |
+| `GET` | `/organizations/{organization_id}/deals/options` | MEMBER+ | Read tenant-safe form options |
+| `GET` | `/organizations/{organization_id}/deals/metrics` | MEMBER+ | Read currency-separated sales metrics |
+| `POST` | `/organizations/{organization_id}/deals/{deal_id}/transition` | OWNER/ADMIN | Change stage and synchronize outcome |
+| `POST` | `/organizations/{organization_id}/deals/{deal_id}/notes` | OWNER/ADMIN | Append a deal note |
+
+Deal listing supports bounded search, stage, outcome, assignee, customer, and
+currency filters; allowlisted sorting; and `page_size=10|25|50`. Values are
+integer minor units and aggregates never combine currencies. Updates,
+transitions, and deletes require the current positive `version`; stale writes
+return HTTP 409 with `deal_conflict`. PostgreSQL validates tenant customer,
+stage, and assignee relationships, derives open/WON/LOST outcomes, timestamps
+closures, increments versions, and appends activity history.
+
 Error responses use the shared envelope:
 
 ```json
