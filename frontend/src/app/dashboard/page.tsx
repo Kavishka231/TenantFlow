@@ -9,10 +9,10 @@ import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { WorkspaceSwitcher } from "@/components/organizations/workspace-switcher";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getMonthlyFinancialAnalyticsForUser } from "@/lib/analytics/financial";
+import { getSalesMetricsThroughBackend } from "@/lib/backend/deals";
 import { getDashboardInsightsForUser } from "@/lib/analytics/insights";
 import { getDashboardMetricsForUser } from "@/lib/analytics/metrics";
 import { resolveAnalyticsRange } from "@/lib/analytics/range";
-import { getSalesMetricsForUser } from "@/lib/deals/metrics";
 import { getExpenseReportsForUser } from "@/lib/expenses/reports";
 import type { OrganizationSummary } from "@/lib/organizations/list";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -28,18 +28,19 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<Search
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const [{ activeOrganization, organizations }, query] = await Promise.all([getActiveWorkspaceForUser(user.id), searchParams]);
+  const { data: { session } } = await supabase.auth.getSession();
   const range = resolveAnalyticsRange(query);
 
-  return <main className="min-h-screen bg-slate-50"><header className="border-b bg-white"><div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3"><Link href="/dashboard" className="flex items-center gap-3 font-semibold"><span className="grid size-9 place-items-center rounded-xl bg-indigo-600 text-white"><Building2 className="size-5" /></span>TenantFlow</Link><div className="flex flex-wrap items-center gap-2">{activeOrganization ? <WorkspaceSwitcher activeOrganization={activeOrganization} organizations={organizations} /> : null}<form action={logoutAction}><Button type="submit" variant="outline"><LogOut /> Log out</Button></form></div></div></header><section className="mx-auto max-w-7xl px-6 py-10">{query.workspaceError ? <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="alert">That workspace could not be selected. Your authorized workspace is unchanged.</div> : null}{activeOrganization ? <WorkspaceAnalytics userId={user.id} organization={activeOrganization} range={range} /> : <EmptyWorkspace />}</section></main>;
+  return <main className="min-h-screen bg-slate-50"><header className="border-b bg-white"><div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3"><Link href="/dashboard" className="flex items-center gap-3 font-semibold"><span className="grid size-9 place-items-center rounded-xl bg-indigo-600 text-white"><Building2 className="size-5" /></span>TenantFlow</Link><div className="flex flex-wrap items-center gap-2">{activeOrganization ? <WorkspaceSwitcher activeOrganization={activeOrganization} organizations={organizations} /> : null}<form action={logoutAction}><Button type="submit" variant="outline"><LogOut /> Log out</Button></form></div></div></header><section className="mx-auto max-w-7xl px-6 py-10">{query.workspaceError ? <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="alert">That workspace could not be selected. Your authorized workspace is unchanged.</div> : null}{activeOrganization ? <WorkspaceAnalytics userId={user.id} accessToken={session?.access_token} organization={activeOrganization} range={range} /> : <EmptyWorkspace />}</section></main>;
 }
 
-async function WorkspaceAnalytics({ userId, organization, range }: { userId: string; organization: OrganizationSummary; range: ReturnType<typeof resolveAnalyticsRange> }) {
+async function WorkspaceAnalytics({ userId, accessToken, organization, range }: { userId: string; accessToken: string | undefined; organization: OrganizationSummary; range: ReturnType<typeof resolveAnalyticsRange> }) {
   await requireOrganizationPermission(userId, organization.id, "read_analytics");
   const [metrics, financial, insights, sales, expenseReports] = await Promise.all([
     getDashboardMetricsForUser(userId, organization.id, range),
     getMonthlyFinancialAnalyticsForUser(userId, organization.id, range),
     getDashboardInsightsForUser(userId, organization.id, range),
-    getSalesMetricsForUser(userId, organization.id, range),
+    getSalesMetricsThroughBackend(userId, accessToken, organization.id, range),
     getExpenseReportsForUser(userId, organization.id, range),
   ]);
   return <AnalyticsDashboard organization={organization} range={range} metrics={metrics} financial={financial} insights={insights} sales={sales} expenseReports={expenseReports} />;
