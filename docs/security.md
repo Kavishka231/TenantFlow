@@ -94,6 +94,13 @@ count as executed when real database credentials and Auth identities are absent.
 - outcome and close timestamps derive from immutable stage kinds;
 - activity rows are append-only and MEMBER cannot insert notes;
 - values use bounded integer minor units and metrics remain currency-separated.
+- FastAPI uses the same restricted runtime role and transaction-local Supabase
+  subject as the TypeScript path; it never receives migration credentials;
+- list, detail, options, activity, and aggregate queries include organization
+  predicates in addition to forced RLS;
+- optimistic versions reject stale edits and transitions before stage changes;
+- the server-only adapter validates FastAPI responses and retains the RLS-backed
+  Drizzle path when the Python service is disabled.
 
 ## Expense and receipt isolation
 

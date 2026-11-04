@@ -31,6 +31,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/customers/list.ts`: TypeScript fallback for bounded customer search, filtering, sorting, and pagination
 - `src/lib/backend/customers.ts`: server-only FastAPI customer adapter and response boundary
 - `src/lib/backend/invoices.ts`: invoice API adapter, validation boundary, and Drizzle fallback
+- `src/lib/backend/deals.ts`: pipeline, deal, metrics, and mutation API adapter with fallbacks
 - `src/lib/invoices/mutations.ts`: transactional draft and lifecycle operations
 - `src/lib/invoices/money.ts`: integer-minor-unit financial calculations
 - `src/lib/invoices/list.ts`: bounded invoice querying and pagination
@@ -52,6 +53,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `../backend/app/organizations/`: Python membership authorization and read services
 - `../backend/app/team/`: team mutations, invitations, delivery, and audit reads
 - `../backend/app/customers/`: existing-table mappings, schemas, and tenant-qualified customer services
+- `../backend/app/deals/`: existing-table deal mappings, pipeline services, metrics, and validation
 
 ## Python migration boundary
 

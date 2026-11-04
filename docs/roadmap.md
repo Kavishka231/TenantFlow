@@ -167,9 +167,22 @@ Live RLS and browser verification remain mandatory before merging this security
 boundary to `main`. Missing disposable identities or a restricted runtime role
 is reported as a skip and leaves the feature branch unmerged.
 
-## Recommended Day 16
+## Day 16 — Python sales pipeline migration
 
-1. provision the restricted runtime role and disposable Auth identities in CI;
-2. execute customer and invoice RLS plus browser workflows against development;
-3. add invoice API performance budgets and observability dashboards;
-4. migrate expense workflows only after invoice parity is verified.
+- SQLAlchemy mappings for existing stages, deals, and append-only activity
+- validated deal CRUD, paginated filters, sorting, and tenant-safe form options
+- secure stage transitions, WON/LOST outcomes, notes, and activity history
+- currency-separated pipeline, won-revenue, stage, and conversion metrics
+- server-only Kanban, form, detail, mutation, and dashboard integration
+- Pytest, API contract, Vitest, credential-gated RLS, and Playwright coverage
+
+Live RLS and browser verification remain mandatory before merging this security
+boundary to `main`. Missing restricted-role credentials or disposable users is
+reported as a skip rather than treated as successful verification.
+
+## Recommended Day 17
+
+1. provision restricted runtime and disposable Auth identities in CI;
+2. execute customer, invoice, and deal live security workflows;
+3. add API latency budgets for large pipelines;
+4. migrate expense management after the pipeline adapter is verified live.

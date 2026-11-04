@@ -43,6 +43,8 @@ Supabase access token; it is never exposed through a public environment value.
   `/api/v1/organizations/{organization_id}/customers`
 - invoice CRUD, lifecycle, payment, customer-option, and PDF endpoints beneath
   `/api/v1/organizations/{organization_id}/invoices`
+- deal CRUD, pipeline, options, transitions, notes, and metrics beneath
+  `/api/v1/organizations/{organization_id}/deals`
 
 Customer list queries accept `q`, `status`, an allowlisted `sort`, `page`, and
 `page_size` of 10, 25, or 50. OWNER and ADMIN can mutate customer records;
@@ -53,6 +55,11 @@ Invoice endpoints map the existing Drizzle tables and call the existing
 PostgreSQL lifecycle/payment functions. They do not create schemas. MEMBER can
 read invoices and PDFs; OWNER and ADMIN can manage drafts, transitions, and
 payments. Next.js uses these endpoints only when `FASTAPI_INTERNAL_URL` is set.
+
+Deal endpoints map the existing stages, deals, and activity tables. PostgreSQL
+RLS and triggers remain authoritative for tenant relationships, assignees,
+outcomes, optimistic versions, close timestamps, and activity events. Sales
+aggregates use integer minor units and group independently by currency.
 
 Interactive API docs are available at `/docs` outside production.
 
