@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { createCheckoutThroughBackend, createPortalThroughBackend } from "@/lib/backend/billing";
 import { getBillingForUser, registerStripeCustomerForUser } from "@/lib/billing/data";
 import { createCheckoutSession, createPortalSession, createStripeCustomer } from "@/lib/billing/stripe-api";
 import { checkoutInputSchema, portalInputSchema } from "@/lib/billing/validation";
@@ -13,6 +14,7 @@ export async function createCheckoutAction(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: { session: authSession } } = await supabase.auth.getSession();
 
   const result = checkoutInputSchema.safeParse({
     organizationId: formData.get("organizationId"),
@@ -25,6 +27,8 @@ export async function createCheckoutAction(formData: FormData) {
     result.data.organizationId,
     "manage_billing",
   );
+  const backendUrl = await createCheckoutThroughBackend(authSession?.access_token, organization.id, result.data.planKey);
+  if (backendUrl) redirect(backendUrl);
   const billing = await getBillingForUser(user.id, organization.id);
   let { customer } = billing;
   const { subscription } = billing;
@@ -57,6 +61,7 @@ export async function createPortalAction(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: { session: authSession } } = await supabase.auth.getSession();
   const result = portalInputSchema.safeParse({ organizationId: formData.get("organizationId") });
   if (!result.success) redirect("/dashboard");
 
@@ -65,6 +70,8 @@ export async function createPortalAction(formData: FormData) {
     result.data.organizationId,
     "manage_billing",
   );
+  const backendUrl = await createPortalThroughBackend(authSession?.access_token, organization.id);
+  if (backendUrl) redirect(backendUrl);
   const { customer } = await getBillingForUser(user.id, organization.id);
   if (!customer) redirect(`/organizations/${organization.id}/billing?error=no-customer`);
 

@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { createCheckoutAction, createPortalAction } from "@/app/billing/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBillingForUser, listActivePlansForUser } from "@/lib/billing/data";
+import { getBillingThroughBackend, listPlansThroughBackend } from "@/lib/backend/billing";
 import { isStripeConfigured } from "@/lib/billing/env";
 import { subscriptionNotice, subscriptionStatusLabels } from "@/lib/billing/lifecycle";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -22,11 +22,13 @@ export default async function BillingPage({ params, searchParams }: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: { session } } = await supabase.auth.getSession();
   const { organizationId } = await params;
   let organization;
   try { organization = await requireOrganizationPermission(user.id, organizationId, "manage_billing"); } catch { notFound(); }
   const [plans, billing, query] = await Promise.all([
-    listActivePlansForUser(user.id), getBillingForUser(user.id, organization.id), searchParams,
+    listPlansThroughBackend(user.id, session?.access_token, organization.id),
+    getBillingThroughBackend(user.id, session?.access_token, organization.id), searchParams,
   ]);
   const stripeReady = isStripeConfigured();
   return <main className="min-h-screen bg-slate-50 px-6 py-10"><div className="mx-auto max-w-5xl space-y-6">
