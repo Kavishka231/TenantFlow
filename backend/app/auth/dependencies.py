@@ -38,3 +38,14 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
+
+
+async def get_access_token(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise ApiError(401, "authentication_required", "A valid bearer token is required.")
+    return credentials.credentials
+
+
+AccessToken = Annotated[str, Depends(get_access_token)]
