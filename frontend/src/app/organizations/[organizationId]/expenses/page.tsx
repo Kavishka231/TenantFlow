@@ -8,8 +8,7 @@ import { ExpenseStatusBadge } from "@/components/expenses/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { listExpenseCategoriesForUser } from "@/lib/expenses/data";
-import { listExpensesForUser } from "@/lib/expenses/list";
+import { listExpenseCategoriesThroughBackend, listExpensesThroughBackend } from "@/lib/backend/expenses";
 import { type ExpenseListQuery, expenseListQuerySchema } from "@/lib/expenses/query";
 import { formatMinorUnits } from "@/lib/invoices/money";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -21,9 +20,10 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 async function ExpensesContent({ params, searchParams }: { params: Promise<{ organizationId: string }>; searchParams: Promise<SearchParams> }) {
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect("/login");
+  const { data: { session } } = await supabase.auth.getSession();
   const { organizationId } = await params; let organization; try { organization = await requireOrganizationPermission(user.id, organizationId, "read_expenses"); } catch { notFound(); }
   const raw = await searchParams; const query = expenseListQuerySchema.parse({ categoryId: first(raw.categoryId), page: first(raw.page), pageSize: first(raw.pageSize), paymentMethod: first(raw.paymentMethod), q: first(raw.q), sort: first(raw.sort), status: first(raw.status) });
-  const [result, categories] = await Promise.all([listExpensesForUser(user.id, organization.id, query), listExpenseCategoriesForUser(user.id, organization.id)]); const canManage = organization.role !== "member";
+  const [result, categories] = await Promise.all([listExpensesThroughBackend(user.id, session?.access_token, organization.id, query), listExpenseCategoriesThroughBackend(user.id, session?.access_token, organization.id)]); const canManage = organization.role !== "member";
   return <main className="min-h-screen bg-slate-50 px-6 py-10"><div className="mx-auto max-w-7xl space-y-6">
     <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}><ArrowLeft /> Dashboard</Link>
     <div className="flex flex-wrap items-end justify-between gap-4"><header><p className="text-sm font-medium text-indigo-600">{organization.name}</p><h1 className="mt-1 text-3xl font-semibold">Expenses</h1><p className="mt-2 text-muted-foreground">{result.total} expense{result.total === 1 ? "" : "s"} in this workspace</p></header>{canManage ? <Link href={`/organizations/${organization.id}/expenses/new`} className={buttonVariants()}><Plus /> New expense</Link> : null}</div>

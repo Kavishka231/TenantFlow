@@ -10,10 +10,10 @@ import { WorkspaceSwitcher } from "@/components/organizations/workspace-switcher
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getMonthlyFinancialAnalyticsForUser } from "@/lib/analytics/financial";
 import { getSalesMetricsThroughBackend } from "@/lib/backend/deals";
+import { getExpenseReportsThroughBackend } from "@/lib/backend/expenses";
 import { getDashboardInsightsForUser } from "@/lib/analytics/insights";
 import { getDashboardMetricsForUser } from "@/lib/analytics/metrics";
 import { resolveAnalyticsRange } from "@/lib/analytics/range";
-import { getExpenseReportsForUser } from "@/lib/expenses/reports";
 import type { OrganizationSummary } from "@/lib/organizations/list";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { getActiveWorkspaceForUser } from "@/lib/organizations/workspace";
@@ -41,7 +41,7 @@ async function WorkspaceAnalytics({ userId, accessToken, organization, range }: 
     getMonthlyFinancialAnalyticsForUser(userId, organization.id, range),
     getDashboardInsightsForUser(userId, organization.id, range),
     getSalesMetricsThroughBackend(userId, accessToken, organization.id, range),
-    getExpenseReportsForUser(userId, organization.id, range),
+    getExpenseReportsThroughBackend(userId, accessToken, organization.id, range),
   ]);
   return <AnalyticsDashboard organization={organization} range={range} metrics={metrics} financial={financial} insights={insights} sales={sales} expenseReports={expenseReports} />;
 }

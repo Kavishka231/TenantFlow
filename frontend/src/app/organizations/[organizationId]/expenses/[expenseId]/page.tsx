@@ -8,7 +8,7 @@ import { ExpenseStatusForm } from "@/components/expenses/status-form";
 import { ExpenseStatusBadge } from "@/components/expenses/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenseForUser } from "@/lib/expenses/data";
+import { getExpenseThroughBackend } from "@/lib/backend/expenses";
 import { formatMinorUnits } from "@/lib/invoices/money";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
@@ -21,11 +21,12 @@ async function ExpenseContent({ params, searchParams }: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { data: { session } } = await supabase.auth.getSession();
   const { organizationId, expenseId } = await params;
   let organization;
   try { organization = await requireOrganizationPermission(user.id, organizationId, "read_expenses"); }
   catch { notFound(); }
-  const expense = await getExpenseForUser(user.id, organization.id, expenseId);
+  const expense = await getExpenseThroughBackend(user.id, session?.access_token, organization.id, expenseId);
   if (!expense) notFound();
   const notice = await searchParams;
   const canManage = organization.role !== "member";
