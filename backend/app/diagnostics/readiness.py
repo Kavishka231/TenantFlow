@@ -27,6 +27,7 @@ class ReadinessSettings(BaseSettings):
     DATABASE_URL: PostgresDsn
     MIGRATION_DATABASE_URL: PostgresDsn
     SUPABASE_URL: AnyHttpUrl
+    SUPABASE_PUBLISHABLE_KEY: str
     RLS_TEST_OWNER_ID: UUID
     RLS_TEST_ADMIN_ID: UUID
     RLS_TEST_MEMBER_ID: UUID
@@ -66,6 +67,7 @@ async def check_readiness(config: ReadinessSettings) -> ReadinessReport:
     runtime_settings = Settings(
         database_url=config.DATABASE_URL,
         supabase_url=config.SUPABASE_URL,
+        supabase_publishable_key=config.SUPABASE_PUBLISHABLE_KEY,
     )
     engine = create_database_engine(runtime_settings)
     try:
