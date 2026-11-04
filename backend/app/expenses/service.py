@@ -93,6 +93,10 @@ async def update_expense(
     if expense is None or expense.version != request.version:
         raise ExpenseConflictError("This expense changed since it was loaded.")
     await require_category(session, organization_id, request.category_id)
+    if request.status != expense.status and request.status not in VALID_TRANSITIONS[expense.status]:
+        raise ExpenseConflictError(
+            f"An expense cannot transition from {expense.status.value} to {request.status.value}."
+        )
     expense.category_id = request.category_id
     expense.amount_minor = request.amount_minor
     expense.currency = request.currency

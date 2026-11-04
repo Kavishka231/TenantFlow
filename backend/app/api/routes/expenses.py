@@ -267,8 +267,15 @@ async def receipt_upload(
 ) -> ReceiptResponse:
     del organization
     content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > MAX_RECEIPT_BYTES:
-        raise ApiError(413, "receipt_too_large", "Receipts must be 5 MB or smaller.")
+    if content_length:
+        try:
+            declared_size = int(content_length)
+        except ValueError as error:
+            raise ApiError(
+                400, "invalid_content_length", "Content-Length must be an integer."
+            ) from error
+        if declared_size < 0 or declared_size > MAX_RECEIPT_BYTES:
+            raise ApiError(413, "receipt_too_large", "Receipts must be 5 MB or smaller.")
     content = await request.body()
     mime_type = request.headers.get("content-type", "").split(";", 1)[0].lower()
     try:
