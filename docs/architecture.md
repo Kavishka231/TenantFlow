@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, customer, and invoice screens can use Python APIs through server-only adapters.
+TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, customer, invoice, sales-pipeline, and expense screens can use Python APIs through server-only adapters.
 
 ## Request flow
 
@@ -48,6 +48,8 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/expenses/list.ts`: bounded expense search, filters, sorting, and pagination
 - `src/lib/expenses/reports.ts`: currency-separated spending analytics
 - `src/lib/expenses/receipts.ts`: private receipt validation and object-path rules
+- `src/lib/backend/expenses.ts`: validated server-only FastAPI adapter with the
+  Drizzle and direct Storage fallback
 - `../backend/app/auth/`: strict Supabase JWT verification and authenticated dependencies
 - `../backend/app/db/`: restricted SQLAlchemy sessions and transaction-local RLS context
 - `../backend/app/organizations/`: Python membership authorization and read services
@@ -151,3 +153,9 @@ transaction. Receipts are stored outside PostgreSQL in the private
 `expense-receipts` bucket; the database stores only validated metadata and an
 organization-prefixed object path. Downloads use short-lived signed URLs after
 fresh authentication and workspace authorization.
+
+The Python expense module maps these existing tables with SQLAlchemy and keeps
+all writes inside the restricted RLS transaction. Its Storage gateway forwards
+the user's bearer token to the existing private bucket and never uses a
+service-role credential. FastAPI mode is selected only by the server-side
+`FASTAPI_INTERNAL_URL`; disabling it restores the original TypeScript path.

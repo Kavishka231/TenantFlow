@@ -65,6 +65,20 @@ return HTTP 409 with `deal_conflict`. PostgreSQL validates tenant customer,
 stage, and assignee relationships, derives open/WON/LOST outcomes, timestamps
 closures, increments versions, and appends activity history.
 
+| Method | Expense path | Role | Purpose |
+| --- | --- | --- | --- |
+| `GET/POST` | `/organizations/{organization_id}/expenses` | MEMBER+ / OWNER,ADMIN | List or create expenses |
+| `GET/PATCH/DELETE` | `/organizations/{organization_id}/expenses/{expense_id}` | MEMBER+ / OWNER,ADMIN | Read, edit, or delete an expense |
+| `GET/POST` | `/organizations/{organization_id}/expenses/categories` | MEMBER+ / OWNER,ADMIN | List or create categories |
+| `PATCH/DELETE` | `/organizations/{organization_id}/expenses/categories/{category_id}` | OWNER/ADMIN | Manage a category |
+| `POST` | `/organizations/{organization_id}/expenses/{expense_id}/transition` | OWNER/ADMIN | Change payment status with version checking |
+| `PUT/GET/DELETE` | `/organizations/{organization_id}/expenses/{expense_id}/receipt` | OWNER,ADMIN / MEMBER+ / OWNER,ADMIN | Manage a private receipt |
+| `GET` | `/organizations/{organization_id}/expenses/metrics` | MEMBER+ | Read currency-separated spending metrics |
+
+Receipt uploads use a raw body with `Content-Type`, `X-Receipt-Name`, and
+`X-Expense-Version` headers. Supported types are PDF, JPEG, PNG, and WebP; the
+maximum size is 5 MB. The download response contains a 60-second signed URL.
+
 Error responses use the shared envelope:
 
 ```json

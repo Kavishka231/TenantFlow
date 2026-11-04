@@ -180,9 +180,21 @@ Live RLS and browser verification remain mandatory before merging this security
 boundary to `main`. Missing restricted-role credentials or disposable users is
 reported as a skip rather than treated as successful verification.
 
-## Recommended Day 17
+## Day 17 — Python expense management migration
+
+- SQLAlchemy mappings for existing expense and category tables, with no new migration
+- authorized CRUD, category management, bounded listing, and explicit status transitions
+- private receipt upload, signed download, and deletion through user-scoped Storage RLS
+- currency-separated monthly, category, total, and paid-spend analytics
+- server-only Next.js screens, actions, receipts, and dashboard adapter with Drizzle fallback
+- Pytest, API contract, receipt-security, Vitest, credential-gated RLS, and Playwright coverage
+
+Live RLS, Storage, and browser verification remain mandatory before merging
+this security boundary to `main`. Missing credentials are reported as skips.
+
+## Recommended Day 18
 
 1. provision restricted runtime and disposable Auth identities in CI;
 2. execute customer, invoice, and deal live security workflows;
 3. add API latency budgets for large pipelines;
-4. migrate expense management after the pipeline adapter is verified live.
+4. add operational tracing for FastAPI-to-Storage receipt requests.

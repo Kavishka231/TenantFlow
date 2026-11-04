@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getExpenseForUser } from "@/lib/expenses/data";
+import { getSignedExpenseReceiptThroughBackend } from "@/lib/backend/expenses";
 import { EXPENSE_RECEIPT_BUCKET } from "@/lib/expenses/receipts";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,9 @@ export async function GET(request: Request, context: { params: Promise<{ organiz
   const { organizationId, expenseId } = await context.params;
   try { await requireOrganizationPermission(user.id, organizationId, "read_expenses"); }
   catch { return new NextResponse("Not found", { status: 404 }); }
+  const { data: { session } } = await supabase.auth.getSession();
+  const backendUrl = await getSignedExpenseReceiptThroughBackend(session?.access_token, organizationId, expenseId);
+  if (backendUrl) return NextResponse.redirect(backendUrl, { headers: { "Cache-Control": "private, no-store" } });
   const expense = await getExpenseForUser(user.id, organizationId, expenseId);
   if (!expense?.receiptPath || !expense.receiptName) return new NextResponse("Not found", { status: 404 });
   const { data, error } = await supabase.storage.from(EXPENSE_RECEIPT_BUCKET).createSignedUrl(expense.receiptPath, 60, { download: expense.receiptName });

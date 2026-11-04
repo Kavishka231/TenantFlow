@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     database_url: PostgresDsn
     supabase_url: AnyHttpUrl
+    supabase_publishable_key: str | None = None
     supabase_jwt_audience: str = "authenticated"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
