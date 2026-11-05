@@ -36,6 +36,7 @@ vi.mock("@/lib/customers/mutations", () => ({
 
 import { BackendApiError } from "@/lib/backend/client";
 import {
+  getCustomerThroughBackend,
   listCustomersThroughBackend,
   updateCustomerThroughBackend,
 } from "@/lib/backend/customers";
@@ -143,5 +144,16 @@ describe("customer FastAPI adapter", () => {
         version: 2,
       }),
     ).rejects.toBeInstanceOf(CustomerConflictError);
+  });
+
+  it("maps a missing FastAPI customer to the existing not-found contract", async () => {
+    mocks.backendRequest.mockRejectedValue(
+      new BackendApiError(404, "customer_not_found"),
+    );
+
+    await expect(
+      getCustomerThroughBackend(userId, "token", organizationId, customerId),
+    ).resolves.toBeNull();
+    expect(mocks.getCustomerForUser).not.toHaveBeenCalled();
   });
 });
