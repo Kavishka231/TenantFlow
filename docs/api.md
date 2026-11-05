@@ -79,6 +79,22 @@ Receipt uploads use a raw body with `Content-Type`, `X-Receipt-Name`, and
 `X-Expense-Version` headers. Supported types are PDF, JPEG, PNG, and WebP; the
 maximum size is 5 MB. The download response contains a 60-second signed URL.
 
+## Billing and analytics endpoints
+
+| Method | Path | Permission | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/organizations/{organization_id}/billing/plans` | OWNER | List active server plans |
+| `GET` | `/organizations/{organization_id}/billing` | OWNER | Read Stripe customer/subscription state |
+| `POST` | `/organizations/{organization_id}/billing/checkout` | OWNER | Create Test Mode Checkout with a server Price ID |
+| `POST` | `/organizations/{organization_id}/billing/portal` | OWNER | Create a hosted Customer Portal session |
+| `GET` | `/organizations/{organization_id}/analytics/dashboard` | MEMBER+ | Read customer, invoice, payment, and financial analytics |
+| `POST` | `/stripe/webhook` | Stripe signature | Process subscription lifecycle events in Python mode |
+
+The webhook endpoint verifies the signature over the unmodified request bytes.
+It is active only when `STRIPE_WEBHOOK_PROCESSOR=python`; otherwise it fails
+closed. Existing PostgreSQL functions provide event replay protection,
+customer/organization matching, and event-created ordering.
+
 Error responses use the shared envelope:
 
 ```json

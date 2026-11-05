@@ -75,6 +75,10 @@ count as executed when real database credentials and Auth identities are absent.
 - customer mappings are cross-checked before subscription changes;
 - normal `authenticated` connections cannot execute webhook synchronization;
 - a dedicated login inheriting only `tenantflow_stripe_webhook` is required.
+- `STRIPE_WEBHOOK_PROCESSOR` selects `typescript`, `python`, or `disabled`; the
+  Next.js route never invokes both processors for one event;
+- Python mode validates that its webhook login is neither superuser nor
+  `BYPASSRLS` and inherits the existing webhook capability before invoking RPC.
 
 ## Analytics isolation
 

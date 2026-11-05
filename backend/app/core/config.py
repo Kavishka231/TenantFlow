@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from fastapi import Request
 from pydantic import AnyHttpUrl, Field, PostgresDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,6 +25,12 @@ class Settings(BaseSettings):
     invitation_delivery_webhook_url: AnyHttpUrl | None = None
     invitation_delivery_webhook_secret: str | None = None
     invitation_dev_outbox: bool = False
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_starter_price_id: str | None = None
+    stripe_growth_price_id: str | None = None
+    stripe_webhook_database_url: PostgresDsn | None = None
+    stripe_webhook_processor: Literal["typescript", "python", "disabled"] = "typescript"
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -45,6 +52,22 @@ class Settings(BaseSettings):
             raise ValueError("Invitation webhook secret must contain at least 16 characters.")
         if self.environment == "production" and self.invitation_dev_outbox:
             raise ValueError("The invitation development outbox is forbidden in production.")
+        stripe_values = (
+            self.stripe_secret_key,
+            self.stripe_webhook_secret,
+            self.stripe_starter_price_id,
+            self.stripe_growth_price_id,
+        )
+        if any(stripe_values) and not all(stripe_values):
+            raise ValueError("Stripe Test Mode configuration must be provided as a complete set.")
+        if self.stripe_secret_key and not self.stripe_secret_key.startswith("sk_test_"):
+            raise ValueError("Only Stripe Test Mode secret keys are accepted.")
+        if self.stripe_webhook_processor == "python" and (
+            not all(stripe_values) or self.stripe_webhook_database_url is None
+        ):
+            raise ValueError(
+                "Python webhook processing requires Stripe keys and its dedicated database URL."
+            )
         return self
 
     @property
@@ -64,3 +87,7 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings  # type: ignore[no-any-return]

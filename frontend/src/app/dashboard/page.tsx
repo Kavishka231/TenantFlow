@@ -8,11 +8,9 @@ import { logoutAction } from "@/app/dashboard/actions";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { WorkspaceSwitcher } from "@/components/organizations/workspace-switcher";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { getMonthlyFinancialAnalyticsForUser } from "@/lib/analytics/financial";
+import { getDashboardAnalyticsThroughBackend } from "@/lib/backend/analytics";
 import { getSalesMetricsThroughBackend } from "@/lib/backend/deals";
 import { getExpenseReportsThroughBackend } from "@/lib/backend/expenses";
-import { getDashboardInsightsForUser } from "@/lib/analytics/insights";
-import { getDashboardMetricsForUser } from "@/lib/analytics/metrics";
 import { resolveAnalyticsRange } from "@/lib/analytics/range";
 import type { OrganizationSummary } from "@/lib/organizations/list";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -36,14 +34,12 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<Search
 
 async function WorkspaceAnalytics({ userId, accessToken, organization, range }: { userId: string; accessToken: string | undefined; organization: OrganizationSummary; range: ReturnType<typeof resolveAnalyticsRange> }) {
   await requireOrganizationPermission(userId, organization.id, "read_analytics");
-  const [metrics, financial, insights, sales, expenseReports] = await Promise.all([
-    getDashboardMetricsForUser(userId, organization.id, range),
-    getMonthlyFinancialAnalyticsForUser(userId, organization.id, range),
-    getDashboardInsightsForUser(userId, organization.id, range),
+  const [dashboard, sales, expenseReports] = await Promise.all([
+    getDashboardAnalyticsThroughBackend(userId, accessToken, organization.id, range),
     getSalesMetricsThroughBackend(userId, accessToken, organization.id, range),
     getExpenseReportsThroughBackend(userId, accessToken, organization.id, range),
   ]);
-  return <AnalyticsDashboard organization={organization} range={range} metrics={metrics} financial={financial} insights={insights} sales={sales} expenseReports={expenseReports} />;
+  return <AnalyticsDashboard organization={organization} range={range} metrics={dashboard.metrics} financial={dashboard.financial} insights={dashboard.insights} sales={sales} expenseReports={expenseReports} />;
 }
 
 function EmptyWorkspace() {

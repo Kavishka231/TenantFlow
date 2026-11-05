@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request,
 from sqlalchemy.exc import IntegrityError
 
 from app.auth.dependencies import AccessToken, CurrentUser
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, get_app_settings
 from app.core.errors import ApiError
 from app.db.dependencies import RlsSession
 from app.expenses.models import ExpenseStatus, PaymentMethod
@@ -240,7 +240,7 @@ async def expense_delete(
     organization: ManageExpenses,
     session: RlsSession,
     user_token: AccessToken,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
     background: BackgroundTasks,
 ) -> None:
     del organization
@@ -261,7 +261,7 @@ async def receipt_upload(
     user: CurrentUser,
     user_token: AccessToken,
     session: RlsSession,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
     receipt_name: Annotated[str, Header(alias="X-Receipt-Name")],
     expense_version: Annotated[int, Header(alias="X-Expense-Version", gt=0)],
 ) -> ReceiptResponse:
@@ -312,7 +312,7 @@ async def receipt_download(
     organization: ReadExpenses,
     session: RlsSession,
     user_token: AccessToken,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> SignedReceiptResponse:
     del organization
     expense = await get_expense(session, organization_id, expense_id)
@@ -337,7 +337,7 @@ async def receipt_delete(
     user: CurrentUser,
     session: RlsSession,
     user_token: AccessToken,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
     background: BackgroundTasks,
 ) -> ReceiptResponse:
     del organization

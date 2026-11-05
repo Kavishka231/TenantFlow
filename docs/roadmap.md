@@ -192,7 +192,20 @@ reported as a skip rather than treated as successful verification.
 Live RLS, Storage, and browser verification remain mandatory before merging
 this security boundary to `main`. Missing credentials are reported as skips.
 
-## Recommended Day 18
+## Day 18 — Python Stripe billing and dashboard analytics migration
+
+- SQLAlchemy mappings for existing plan, customer, subscription, and webhook tables
+- OWNER-only Test Mode Checkout and Portal using server-controlled Price IDs
+- raw-body HMAC verification and the existing idempotent, ordered webhook RPC
+- explicit TypeScript/Python/disabled processor selection with rollback support
+- tenant RLS dashboard metrics, financial series, insights, sales, and expenses
+- server-only billing/dashboard adapters with the verified TypeScript fallback
+- Pytest, Vitest, contract, webhook-security, credential-gated RLS/Stripe, and Playwright coverage
+
+Live Stripe sandbox, RLS, and browser verification remain mandatory before
+merging this security boundary to `main`.
+
+## Recommended Day 19
 
 1. provision restricted runtime and disposable Auth identities in CI;
 2. execute customer, invoice, and deal live security workflows;

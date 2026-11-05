@@ -28,6 +28,11 @@ class ReadinessSettings(BaseSettings):
     MIGRATION_DATABASE_URL: PostgresDsn
     SUPABASE_URL: AnyHttpUrl
     SUPABASE_PUBLISHABLE_KEY: str
+    STRIPE_SECRET_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
+    STRIPE_STARTER_PRICE_ID: str
+    STRIPE_GROWTH_PRICE_ID: str
+    STRIPE_WEBHOOK_DATABASE_URL: PostgresDsn
     RLS_TEST_OWNER_ID: UUID
     RLS_TEST_ADMIN_ID: UUID
     RLS_TEST_MEMBER_ID: UUID
@@ -42,6 +47,8 @@ class ReadinessReport(BaseModel):
     migrations_expected: int
     test_identities_found: int
     test_identities_expected: int = 4
+    webhook_connected: bool
+    webhook_role_safe: bool
 
     @property
     def ready(self) -> bool:
@@ -51,6 +58,8 @@ class ReadinessReport(BaseModel):
             and self.migration_connected
             and self.migrations_applied >= self.migrations_expected
             and self.test_identities_found == self.test_identities_expected
+            and self.webhook_connected
+            and self.webhook_role_safe
         )
 
 
@@ -94,6 +103,19 @@ async def check_readiness(config: ReadinessSettings) -> ReadinessReport:
         )
         migration_row = await migration_result.fetchone()
 
+    async with await psycopg.AsyncConnection.connect(
+        str(config.STRIPE_WEBHOOK_DATABASE_URL)
+    ) as webhook_connection:
+        webhook_role_result = await webhook_connection.execute(
+            """select r.rolsuper, r.rolbypassrls,
+                      pg_has_role(current_user, 'tenantflow_stripe_webhook', 'member')
+               from pg_roles r where r.rolname=current_user"""
+        )
+        webhook_role = await webhook_role_result.fetchone()
+    webhook_safe = bool(
+        webhook_role and not webhook_role[0] and not webhook_role[1] and webhook_role[2]
+    )
+
     return ReadinessReport(
         runtime_connected=True,
         runtime_role_safe=True,
@@ -101,6 +123,8 @@ async def check_readiness(config: ReadinessSettings) -> ReadinessReport:
         migrations_applied=int(migration_row[0]) if migration_row else 0,
         migrations_expected=expected_migration_count(),
         test_identities_found=int(identity_row[0]) if identity_row else 0,
+        webhook_connected=True,
+        webhook_role_safe=webhook_safe,
     )
 
 
@@ -109,9 +133,7 @@ async def async_main() -> int:
         config = ReadinessSettings()
     except ValidationError as error:
         missing = sorted(
-            str(item["loc"][0])
-            for item in error.errors()
-            if item["type"] == "missing"
+            str(item["loc"][0]) for item in error.errors() if item["type"] == "missing"
         )
         print(json.dumps({"ready": False, "missing": missing}, indent=2))
         return 2
