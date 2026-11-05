@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { backendRequest, BackendApiError } from "./client";
+import {
+  backendBinaryRequest,
+  backendRequest,
+  BackendApiError,
+  BackendConfigurationError,
+} from "./client";
 
 const databaseUrl = "postgresql://runtime:secret@localhost:5432/postgres";
 
@@ -10,8 +15,9 @@ afterEach(() => {
 });
 
 describe("FastAPI server adapter", () => {
-  it("uses the TypeScript fallback when FastAPI is not configured", async () => {
+  it("uses the TypeScript fallback only when explicitly selected", async () => {
     vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "typescript");
     delete process.env.FASTAPI_INTERNAL_URL;
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
@@ -22,8 +28,19 @@ describe("FastAPI server adapter", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("fails closed when FastAPI is selected without an internal URL", async () => {
+    vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "fastapi");
+    delete process.env.FASTAPI_INTERNAL_URL;
+
+    await expect(
+      backendRequest("/api/v1/organizations", "access-token"),
+    ).rejects.toBeInstanceOf(BackendConfigurationError);
+  });
+
   it("forwards the Supabase bearer token only from the server", async () => {
     vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "fastapi");
     vi.stubEnv("FASTAPI_INTERNAL_URL", "http://127.0.0.1:8000");
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify([{ id: "organization" }]), {
@@ -37,14 +54,15 @@ describe("FastAPI server adapter", () => {
 
     expect(result).toEqual({ enabled: true, data: [{ id: "organization" }] });
     const [, request] = fetchSpy.mock.calls[0] as [URL, RequestInit];
-    expect(request.headers).toMatchObject({
-      Authorization: "Bearer access-token",
-    });
+    expect(new Headers(request.headers).get("Authorization")).toBe(
+      "Bearer access-token",
+    );
     expect(request.cache).toBe("no-store");
   });
 
   it("preserves stable FastAPI error codes", async () => {
     vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "fastapi");
     vi.stubEnv("FASTAPI_INTERNAL_URL", "http://127.0.0.1:8000");
     vi.stubGlobal(
       "fetch",
@@ -62,6 +80,42 @@ describe("FastAPI server adapter", () => {
       backendRequest("/api/v1/organizations/missing", "access-token"),
     ).rejects.toMatchObject<Partial<BackendApiError>>({
       code: "organization_not_found",
+      message: "Not found",
+      status: 404,
+    });
+  });
+
+  it("does not allow an adapter call to replace the authenticated token", async () => {
+    vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "fastapi");
+    vi.stubEnv("FASTAPI_INTERNAL_URL", "http://127.0.0.1:8000");
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await backendRequest("/api/v1/organizations", "trusted-token", {
+      headers: { Authorization: "Bearer attacker-controlled" },
+    });
+
+    const [, request] = fetchSpy.mock.calls[0] as [URL, RequestInit];
+    expect(new Headers(request.headers).get("Authorization")).toBe(
+      "Bearer trusted-token",
+    );
+  });
+
+  it("preserves structured errors for binary downloads", async () => {
+    vi.stubEnv("DATABASE_URL", databaseUrl);
+    vi.stubEnv("TENANTFLOW_BACKEND", "fastapi");
+    vi.stubEnv("FASTAPI_INTERNAL_URL", "http://127.0.0.1:8000");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: { code: "invoice_not_found", message: "The invoice was not found." },
+      request_id: "request-123",
+    }), { status: 404, headers: { "Content-Type": "application/json" } })));
+
+    await expect(
+      backendBinaryRequest("/api/v1/organizations/o/invoices/i/pdf", "token"),
+    ).rejects.toMatchObject({
+      code: "invoice_not_found",
+      requestId: "request-123",
       status: 404,
     });
   });
