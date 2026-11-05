@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from fastapi import Request
 from pydantic import AnyHttpUrl, Field, PostgresDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -86,3 +87,7 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings  # type: ignore[no-any-return]

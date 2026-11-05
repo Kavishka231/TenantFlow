@@ -28,7 +28,7 @@ from app.billing.stripe import (
     create_portal,
 )
 from app.billing.webhook import SUPPORTED_EVENTS, process_webhook, verify_signature
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, get_app_settings
 from app.core.errors import ApiError
 from app.db.dependencies import RlsSession
 from app.organizations.authorization import require_organization_permission
@@ -73,7 +73,7 @@ async def checkout(
     request: CheckoutRequest,
     organization: ManageBilling,
     session: RlsSession,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> BillingUrlResponse:
     if await has_active_subscription(session, organization_id):
         raise ApiError(
@@ -96,7 +96,7 @@ async def portal(
     organization_id: UUID,
     organization: ManageBilling,
     session: RlsSession,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> BillingUrlResponse:
     del organization
     customer_id = (await get_billing(session, organization_id)).customer_id
@@ -131,7 +131,7 @@ async def analytics(
 @router.post("/stripe/webhook", response_model=WebhookResponse)
 async def stripe_webhook(
     request: Request,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
     stripe_signature: Annotated[str | None, Header(alias="stripe-signature")] = None,
 ) -> WebhookResponse:
     if settings.stripe_webhook_processor != "python":
