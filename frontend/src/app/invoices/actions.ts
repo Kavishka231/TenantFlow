@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { InvoiceActionState } from "@/lib/invoices/action-state";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { PlanLimitError } from "@/lib/billing/entitlements";
 import { decimalToMinorUnits, percentageToBasisPoints } from "@/lib/invoices/money";
 import {
@@ -65,7 +66,10 @@ export async function createInvoiceAction(_state: InvoiceActionState, formData: 
   } catch (error) {
     if (error instanceof PlanLimitError) return { message: `${error.message} Ask the workspace owner to upgrade billing.`, status: "error" };
     if (error instanceof InvoiceConflictError) return { message: error.message, status: "error" };
-    throw error;
+    return {
+      message: backendActionErrorMessage(error, "The invoice could not be created."),
+      status: "error",
+    };
   }
 }
 
@@ -81,7 +85,10 @@ export async function updateInvoiceAction(_state: InvoiceActionState, formData: 
     redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?updated=1`);
   } catch (error) {
     if (error instanceof InvoiceConflictError) return { message: error.message, status: "error" };
-    throw error;
+    return {
+      message: backendActionErrorMessage(error, "The invoice could not be updated."),
+      status: "error",
+    };
   }
 }
 
@@ -148,8 +155,14 @@ export async function recordPaymentAction(
     await recordInvoicePaymentThroughBackend(user.id, accessToken, result.data);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices`);
     revalidatePath(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}`);
-  } catch {
-    return { message: "The payment could not be recorded. Check the outstanding balance and try again.", status: "error" };
+  } catch (error) {
+    return {
+      message: backendActionErrorMessage(
+        error,
+        "The payment could not be recorded. Check the outstanding balance and try again.",
+      ),
+      status: "error",
+    };
   }
   redirect(`/organizations/${result.data.organizationId}/invoices/${result.data.invoiceId}?payment=recorded`);
 }

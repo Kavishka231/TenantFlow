@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { updateOrganizationThroughBackend } from "@/lib/backend/organizations";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import { updateOrganizationSchema } from "@/lib/organizations/validation";
 import type { TeamActionState } from "@/lib/team/action-state";
@@ -56,7 +57,13 @@ export async function updateOrganizationAction(
     revalidatePath("/dashboard");
     revalidatePath(`/organizations/${result.data.organizationId}/settings`);
     return { message: "Organization settings updated.", status: "success" };
-  } catch {
-    return { message: "You cannot update this organization.", status: "error" };
+  } catch (error) {
+    return {
+      message: backendActionErrorMessage(
+        error,
+        "You cannot update this organization.",
+      ),
+      status: "error",
+    };
   }
 }

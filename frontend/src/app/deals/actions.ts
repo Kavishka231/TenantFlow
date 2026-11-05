@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { DealActionState } from "@/lib/deals/action-state";
 import { addDealNoteThroughBackend, createDealThroughBackend, deleteDealThroughBackend, transitionDealThroughBackend, updateDealThroughBackend } from "@/lib/backend/deals";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { DealConflictError } from "@/lib/deals/mutations";
 import { addDealNoteSchema, createDealSchema, deleteDealSchema, transitionDealSchema, updateDealSchema } from "@/lib/deals/validation";
 import { decimalToMinorUnits } from "@/lib/invoices/money";
@@ -13,7 +14,15 @@ import { createClient } from "@/lib/supabase/server";
 
 async function requireUser() { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect("/login"); const { data: { session } } = await supabase.auth.getSession(); return { accessToken: session?.access_token, user }; }
 function fields(formData: FormData) { return { title: formData.get("title"), description: formData.get("description"), customerId: formData.get("customerId"), stageId: formData.get("stageId"), assignedUserId: formData.get("assignedUserId"), valueMinor: decimalToMinorUnits(formData.get("value")), currency: formData.get("currency"), expectedCloseDate: formData.get("expectedCloseDate") }; }
-function errorState(error: unknown): DealActionState { return { status: "error", message: error instanceof DealConflictError ? error.message : "The deal could not be saved. Check that the customer, stage, and assignee belong to this workspace." }; }
+function errorState(error: unknown): DealActionState {
+  const fallback = "The deal could not be saved. Check that the customer, stage, and assignee belong to this workspace.";
+  return {
+    status: "error",
+    message: error instanceof DealConflictError
+      ? error.message
+      : backendActionErrorMessage(error, fallback),
+  };
+}
 
 export async function createDealAction(_state: DealActionState, formData: FormData): Promise<DealActionState> {
   const result = createDealSchema.safeParse({ ...fields(formData), organizationId: formData.get("organizationId") }); if (!result.success) return { status: "error", message: result.error.issues[0]?.message ?? "Check the deal details." };

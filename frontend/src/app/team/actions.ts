@@ -10,6 +10,7 @@ import {
   revokeInvitationThroughBackend,
   transferOwnershipThroughBackend,
 } from "@/lib/backend/team";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import type { TeamActionState } from "@/lib/team/action-state";
 import {
@@ -89,7 +90,7 @@ export async function createInvitationAction(
       message:
         error instanceof DuplicateInvitationError
           ? error.message
-          : "You cannot create this invitation.",
+          : backendActionErrorMessage(error, "You cannot create this invitation."),
       status: "error",
     };
   }
