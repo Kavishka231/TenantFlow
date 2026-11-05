@@ -16,3 +16,31 @@ export function backendActionErrorMessage(error: unknown, fallback: string): str
   if (error.status === 409 || error.status === 422) return error.message;
   return error.requestId ? `${fallback} Reference: ${error.requestId}.` : fallback;
 }
+
+export function backendRouteError(error: unknown): {
+  message: string;
+  requestId?: string;
+  status: number;
+} {
+  if (error instanceof BackendConfigurationError) {
+    return { message: "Application service unavailable", status: 503 };
+  }
+  if (!(error instanceof BackendApiError)) {
+    return { message: "Upstream service unavailable", status: 502 };
+  }
+  if (error.status === 401) {
+    return {
+      message: "Your session has expired. Sign in again.",
+      requestId: error.requestId,
+      status: 401,
+    };
+  }
+  if (error.status === 403 || error.status === 404) {
+    return { message: "Not found", requestId: error.requestId, status: 404 };
+  }
+  return {
+    message: "Upstream service unavailable",
+    requestId: error.requestId,
+    status: 502,
+  };
+}
