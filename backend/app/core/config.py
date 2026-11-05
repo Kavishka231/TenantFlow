@@ -41,6 +41,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_invitation_delivery(self) -> "Settings":
+        origins = [origin.rstrip("/") for origin in self.cors_origins]
+        if "*" in origins:
+            raise ValueError("Wildcard CORS origins are forbidden with authenticated requests.")
+        if self.environment == "production":
+            if any(not origin.startswith("https://") for origin in origins):
+                raise ValueError("Production CORS origins must use HTTPS.")
+            if self.frontend_app_url.scheme != "https":
+                raise ValueError("The production frontend URL must use HTTPS.")
+        self.cors_origins = origins
         if bool(self.invitation_delivery_webhook_url) != bool(
             self.invitation_delivery_webhook_secret
         ):
