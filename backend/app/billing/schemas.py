@@ -31,6 +31,7 @@ class SubscriptionResponse(BaseModel):
 class BillingResponse(BaseModel):
     customer_id: str | None
     subscription: SubscriptionResponse | None
+    stripe_configured: bool = False
 
 
 class CheckoutRequest(BaseModel):

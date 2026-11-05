@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { backendRequest } from "@/lib/backend/client";
 import { getBillingForUser, listActivePlansForUser } from "@/lib/billing/data";
+import { isStripeConfigured } from "@/lib/billing/env";
 
 const planSchema = z.object({
   id: z.uuid(), key: z.string(), name: z.string(), description: z.string(),
@@ -15,12 +16,13 @@ const planSchema = z.object({
 }));
 const statusSchema = z.enum(["incomplete", "incomplete_expired", "trialing", "active", "past_due", "canceled", "unpaid", "paused"]);
 const billingSchema = z.object({
-  customer_id: z.string().nullable(), subscription: z.object({
+  customer_id: z.string().nullable(), stripe_configured: z.boolean(), subscription: z.object({
     status: statusSchema, cancel_at_period_end: z.boolean(), current_period_end: z.coerce.date().nullable(),
     plan_key: z.string(), plan_name: z.string(),
   }).nullable(),
-}).transform(({ customer_id, subscription }) => ({
+}).transform(({ customer_id, stripe_configured, subscription }) => ({
   customer: customer_id ? { stripeCustomerId: customer_id } : null,
+  stripeConfigured: stripe_configured,
   subscription: subscription ? {
     status: subscription.status, cancelAtPeriodEnd: subscription.cancel_at_period_end,
     currentPeriodEnd: subscription.current_period_end, planKey: subscription.plan_key,
@@ -34,7 +36,8 @@ export async function listPlansThroughBackend(userId: string, token: string | un
 }
 export async function getBillingThroughBackend(userId: string, token: string | undefined, organizationId: string) {
   const result = await backendRequest(`/api/v1/organizations/${organizationId}/billing`, token);
-  return result.enabled ? billingSchema.parse(result.data) : getBillingForUser(userId, organizationId);
+  if (result.enabled) return billingSchema.parse(result.data);
+  return { ...await getBillingForUser(userId, organizationId), stripeConfigured: isStripeConfigured() };
 }
 export async function createCheckoutThroughBackend(token: string | undefined, organizationId: string, planKey: "starter" | "growth") {
   const result = await backendRequest(`/api/v1/organizations/${organizationId}/billing/checkout`, token, {

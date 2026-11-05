@@ -15,7 +15,7 @@ describe("billing FastAPI adapter", () => {
   it("maps owner billing state and plan minor units", async () => {
     mocks.backendRequest
       .mockResolvedValueOnce({ enabled: true, data: [{ id: organizationId, key: "starter", name: "Starter", description: "Plan", monthly_price_minor: 2900, currency: "USD", features: [], limits: {}, sort_order: 2 }] })
-      .mockResolvedValueOnce({ enabled: true, data: { customer_id: "cus_Test123", subscription: { status: "active", cancel_at_period_end: false, current_period_end: "2026-12-01T00:00:00Z", plan_key: "starter", plan_name: "Starter" } } });
+      .mockResolvedValueOnce({ enabled: true, data: { customer_id: "cus_Test123", stripe_configured: true, subscription: { status: "active", cancel_at_period_end: false, current_period_end: "2026-12-01T00:00:00Z", plan_key: "starter", plan_name: "Starter" } } });
     const plans = await listPlansThroughBackend("user", "token", organizationId);
     const billing = await getBillingThroughBackend("user", "token", organizationId);
     expect(plans[0]?.monthlyPriceMinor).toBe(2900);
@@ -25,7 +25,7 @@ describe("billing FastAPI adapter", () => {
   it("retains the Drizzle fallback", async () => {
     const fallback = { customer: null, subscription: null };
     mocks.backendRequest.mockResolvedValue({ enabled: false }); mocks.getBillingForUser.mockResolvedValue(fallback);
-    await expect(getBillingThroughBackend("user", undefined, organizationId)).resolves.toBe(fallback);
+    await expect(getBillingThroughBackend("user", undefined, organizationId)).resolves.toMatchObject(fallback);
   });
 
   it("sends only a plan key and accepts hosted Checkout URLs", async () => {

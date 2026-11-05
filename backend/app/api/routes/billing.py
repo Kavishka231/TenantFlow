@@ -61,10 +61,19 @@ async def plans(
 
 @router.get("/organizations/{organization_id}/billing", response_model=BillingResponse)
 async def billing(
-    organization_id: UUID, organization: ManageBilling, session: RlsSession
+    organization_id: UUID,
+    organization: ManageBilling,
+    session: RlsSession,
+    settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> BillingResponse:
     del organization
-    return await get_billing(session, organization_id)
+    state = await get_billing(session, organization_id)
+    configured = bool(
+        settings.stripe_secret_key
+        and settings.stripe_starter_price_id
+        and settings.stripe_growth_price_id
+    )
+    return state.model_copy(update={"stripe_configured": configured})
 
 
 @router.post("/organizations/{organization_id}/billing/checkout", response_model=BillingUrlResponse)
