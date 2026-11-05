@@ -8,6 +8,20 @@ Tenant isolation uses three independent controls:
 2. server-side membership and role authorization; and
 3. PostgreSQL RLS executed under a non-owner, non-`BYPASSRLS` role.
 
+## Server integration boundary
+
+Next.js adapters are server-only and overwrite, rather than trust, any caller
+supplied Authorization or request-correlation header. They accept only internal
+`/api/v1/` paths, forward the current Supabase bearer token, disable caching,
+and validate Python responses before rendering them. FastAPI is selected by
+`TENANTFLOW_BACKEND=fastapi`; a missing internal URL, timeout, 401/403, invalid
+response, or 5xx fails closed. Drizzle fallback occurs only when
+`TENANTFLOW_BACKEND=typescript` was explicitly selected before the request.
+
+Credentialed CORS forbids wildcard origins. Production API and frontend origins
+must use HTTPS. Receipt upload headers and `PUT` are allowlisted, while request
+IDs and download disposition are the only exposed response headers.
+
 The initial migration forces RLS on tenant tables. Membership lookup helpers are `SECURITY DEFINER`, use a fixed empty search path, fully qualify referenced objects, and revoke public execution before granting it to `authenticated`.
 
 ## Organization roles
