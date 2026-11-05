@@ -13,6 +13,8 @@ def test_readiness_requires_role_migrations_and_all_identities() -> None:
         migrations_applied=25,
         migrations_expected=25,
         test_identities_found=4,
+        webhook_connected=True,
+        webhook_role_safe=True,
     )
     missing_identity = ready.model_copy(update={"test_identities_found": 3})
 
