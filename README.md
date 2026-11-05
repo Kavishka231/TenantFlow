@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 17 migrates expense, category, receipt, and spending analytics behind the optional FastAPI adapter while preserving the verified TypeScript fallback. Development migrations remain applied through `0024`; live RLS, Storage, browser, Auth, and Stripe verification remain credential-dependent:
+Day 18 migrates Stripe Test Mode billing and dashboard analytics behind the optional FastAPI adapter while preserving the verified TypeScript fallback and an explicit single-webhook-processor rollback switch. Development migrations remain applied through `0024`; live RLS, Stripe, browser, and Auth verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -79,6 +79,7 @@ Day 17 migrates expense, category, receipt, and spending analytics behind the op
 - FastAPI invoice CRUD, lifecycle, idempotent payments, and private PDF downloads
 - FastAPI deal CRUD, Kanban data, stage transitions, notes, activity, and sales metrics
 - FastAPI expense/category CRUD, payment transitions, private receipts, and spending metrics
+- FastAPI owner-only billing, signed webhook processing, and dashboard analytics
 - tenant-qualified customer authorization with optimistic version conflicts
 - server-only customer screen adapters with unchanged TypeScript fallbacks
 

@@ -125,13 +125,18 @@ generated only after server-side workspace authorization and are never cached.
 
 Checkout and Customer Portal sessions are created only after OWNER authorization.
 Stripe is authoritative for lifecycle state. Signed subscription events enter
-through a Node.js route handler and dedicated database capability; plan limits
+through one Next.js route and exactly one configured processor. In `typescript`
+mode the established handler uses the dedicated database capability; in
+`python` mode the route forwards the untouched body and signature to FastAPI.
+Both processors call the same idempotent PostgreSQL function, so rollback is a
+configuration change rather than a data migration. Plan limits
 are checked inside customer and invoice creation transactions.
 
 ## Dashboard analytics
 
 The dashboard validates a bounded date range, explicitly authorizes the active
-organization, and executes read-only aggregates through `withUserContext`.
+organization, and executes read-only aggregates through either `withUserContext`
+or the equivalent FastAPI RLS transaction.
 Financial series are grouped by ISO currency before presentation; no exchange
 rate conversion or cross-currency summation is implied. Recent activity is
 derived from tenant-readable business tables so MEMBER access stays read-only.

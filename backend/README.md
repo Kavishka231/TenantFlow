@@ -47,6 +47,11 @@ Supabase access token; it is never exposed through a public environment value.
   `/api/v1/organizations/{organization_id}/deals`
 - expense/category CRUD, status transitions, analytics, and private receipt
   endpoints beneath `/api/v1/organizations/{organization_id}/expenses`
+- owner-only plans, billing state, Checkout, and Portal beneath
+  `/api/v1/organizations/{organization_id}/billing`
+- tenant dashboard analytics beneath `/api/v1/organizations/{organization_id}/analytics`
+- signed subscription events at `/api/v1/stripe/webhook` when the Python
+  processor is explicitly active
 
 Customer list queries accept `q`, `status`, an allowlisted `sort`, `page`, and
 `page_size` of 10, 25, or 50. OWNER and ADMIN can mutate customer records;
