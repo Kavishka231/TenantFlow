@@ -24,7 +24,23 @@ if (hasLiveConfiguration && backendMode === "fastapi" && !fastApiUrl) {
   );
 }
 
+let fastApiPort = "8000";
 if (hasLiveConfiguration && backendMode === "fastapi") {
+  const parsedFastApiUrl = new URL(fastApiUrl!);
+  const parsedPort = Number(parsedFastApiUrl.port || "80");
+  if (
+    parsedFastApiUrl.protocol !== "http:" ||
+    !["127.0.0.1", "localhost"].includes(parsedFastApiUrl.hostname) ||
+    !Number.isInteger(parsedPort) ||
+    parsedPort < 1 ||
+    parsedPort > 65_535
+  ) {
+    throw new Error(
+      "Live Playwright tests require FASTAPI_INTERNAL_URL to use a local HTTP origin.",
+    );
+  }
+  fastApiPort = String(parsedPort);
+  process.env.NEXT_PUBLIC_APP_URL = baseURL;
   process.env.SUPABASE_URL ??= process.env.NEXT_PUBLIC_SUPABASE_URL;
   process.env.SUPABASE_PUBLISHABLE_KEY ??=
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -34,8 +50,8 @@ if (hasLiveConfiguration && backendMode === "fastapi") {
 }
 
 const pythonCommand = process.platform === "win32"
-  ? "cd ..\\backend && .venv\\Scripts\\python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000"
-  : "cd ../backend && .venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000";
+  ? `cd ..\\backend && .venv\\Scripts\\python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port ${fastApiPort}`
+  : `cd ../backend && .venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port ${fastApiPort}`;
 
 const webServer = hasLiveConfiguration
   ? [
