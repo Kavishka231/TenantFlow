@@ -243,6 +243,7 @@ state; normal authenticated connections cannot execute that function.
 - [API](docs/api.md)
 - [Database](docs/database.md)
 - [Security](docs/security.md)
+- [Live verification](docs/live-verification.md)
 - [Roadmap](docs/roadmap.md)
 
 No license has been selected. Do not assume permission to redistribute the project.
