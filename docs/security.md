@@ -170,6 +170,11 @@ updates/deletes include a version predicate. Forced RLS remains the final
 boundary, and existing database triggers write audit events in the same
 transaction without placing contact details or notes in audit metadata.
 
+FastAPI startup rejects a runtime login that owns any RLS-protected application
+table, including supporting item, payment, activity, category, audit, billing,
+and profile tables. Checking only top-level aggregate tables is insufficient
+because PostgreSQL table owners are not constrained like ordinary RLS callers.
+
 Invitation tokens contain 256 bits of randomness and are persisted only as
 SHA-256 hashes. Acceptance delegates verified-email, expiry, recipient,
 single-use, and existing-membership checks to the existing locked PostgreSQL

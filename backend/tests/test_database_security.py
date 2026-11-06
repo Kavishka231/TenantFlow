@@ -3,11 +3,35 @@ from uuid import UUID
 import pytest
 
 from app.db.session import (
+    RLS_TABLES,
     RuntimeRoleState,
     UnsafeRuntimeRoleError,
     assert_safe_runtime_role,
     claims_for_user,
 )
+
+
+def test_runtime_ownership_guard_covers_every_rls_table() -> None:
+    assert set(RLS_TABLES) == {
+        "audit_events",
+        "customers",
+        "deal_activities",
+        "deals",
+        "expense_categories",
+        "expenses",
+        "invoice_items",
+        "invoices",
+        "organization_invitations",
+        "organization_members",
+        "organization_subscriptions",
+        "organizations",
+        "payment_records",
+        "pipeline_stages",
+        "profiles",
+        "stripe_customers",
+        "stripe_webhook_events",
+        "subscription_plans",
+    }
 
 
 def test_claim_context_contains_only_verified_identity_and_role() -> None:

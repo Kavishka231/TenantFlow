@@ -15,12 +15,24 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import Settings
 
-TENANT_TABLES = (
+RLS_TABLES = (
+    "profiles",
     "organizations",
     "organization_members",
+    "organization_invitations",
+    "audit_events",
     "customers",
     "invoices",
+    "invoice_items",
+    "payment_records",
+    "subscription_plans",
+    "stripe_customers",
+    "organization_subscriptions",
+    "stripe_webhook_events",
+    "pipeline_stages",
     "deals",
+    "deal_activities",
+    "expense_categories",
     "expenses",
 )
 
@@ -70,7 +82,7 @@ async def read_runtime_role_state(connection: AsyncConnection) -> RuntimeRoleSta
             where role.rolname = current_user
             """
         ),
-        {"tenant_tables": list(TENANT_TABLES)},
+        {"tenant_tables": list(RLS_TABLES)},
     )
     row = result.mappings().one()
     return RuntimeRoleState(
