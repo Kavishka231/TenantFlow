@@ -188,6 +188,9 @@ Four confirmed development Auth users represent OWNER, ADMIN, MEMBER, and an
 outsider. They must be created through Supabase Auth so `auth.users` and
 `profiles` remain consistent. Test files are gitignored and credentials must
 never be copied into source, command output, screenshots, or CI logs.
+Authenticated Playwright traces are disabled because trace archives can retain
+cookies, authorization headers, and typed test passwords. Failure screenshots
+remain local and must never be committed.
 
 Invitation delivery begins only after its RLS transaction commits. Validation
 errors expose field locations, stable types, and messages but omit submitted

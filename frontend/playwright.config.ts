@@ -82,7 +82,9 @@ export default defineConfig({
   use: {
     baseURL,
     screenshot: "only-on-failure",
-    trace: "retain-on-failure",
+    // Authenticated traces can retain cookies, headers, and typed passwords.
+    // Keep them disabled unless a separately sanitized local reproduction is used.
+    trace: "off",
   },
   projects: [
     {
