@@ -1,6 +1,6 @@
 # Architecture
 
-TenantFlow uses Next.js App Router with an incremental FastAPI migration path. Existing TypeScript implementations remain available until their replacements are verified. Organization, team, customer, invoice, sales-pipeline, and expense screens can use Python APIs through server-only adapters.
+TenantFlow uses Next.js App Router with FastAPI as its intended application backend. Existing TypeScript implementations remain available as an explicitly selected rollback path. Organization, team, customer, invoice, sales-pipeline, expense, billing, and analytics screens use Python APIs through server-only adapters.
 
 ## Request flow
 
@@ -9,7 +9,8 @@ TenantFlow uses Next.js App Router with an incremental FastAPI migration path. E
 3. server actions validate input and invoke Supabase Auth through the server client.
 4. organization operations verify membership and role permissions before using tenant context;
 5. direct PostgreSQL operations execute through `withUserContext` so RLS evaluates transaction-local identity claims.
-6. when `FASTAPI_INTERNAL_URL` is configured, the workspace screen forwards its Supabase token server-to-server to FastAPI, which independently verifies it and sets the same transaction-local RLS context.
+6. in `TENANTFLOW_BACKEND=fastapi` mode, server-only adapters forward the current Supabase access token to `FASTAPI_INTERNAL_URL`; FastAPI independently verifies it and sets the same transaction-local RLS context;
+7. `TENANTFLOW_BACKEND=typescript` is the only condition that selects the rollback implementation. Python errors never fall through to a second mutation.
 
 The browser client receives only Supabase's project URL and publishable key. Direct PostgreSQL connections, migration credentials, and privileged operations stay on the server.
 
@@ -30,6 +31,7 @@ The browser client receives only Supabase's project URL and publishable key. Dir
 - `src/lib/customers/mutations.ts`: tenant-qualified customer writes
 - `src/lib/customers/list.ts`: TypeScript fallback for bounded customer search, filtering, sorting, and pagination
 - `src/lib/backend/customers.ts`: server-only FastAPI customer adapter and response boundary
+- `src/lib/backend/client.ts`: fail-closed backend selection, bearer forwarding, correlation IDs, and structured errors
 - `src/lib/backend/invoices.ts`: invoice API adapter, validation boundary, and Drizzle fallback
 - `src/lib/backend/deals.ts`: pipeline, deal, metrics, and mutation API adapter with fallbacks
 - `src/lib/invoices/mutations.ts`: transactional draft and lifecycle operations
@@ -64,6 +66,11 @@ Drizzle migrations remain the schema source of truth. The Python connection is
 validated at startup and rejected if it owns tenant tables, bypasses RLS, is a
 superuser, or does not inherit `authenticated`. No existing TypeScript business
 logic is removed merely because a Python endpoint exists.
+
+Live Playwright configuration starts Next.js and FastAPI as separate local
+processes when `TENANTFLOW_BACKEND=fastapi`. The Python process inherits only
+the test environment, uses the restricted `DATABASE_URL`, and must report a
+healthy `/api/v1/health` endpoint before browser scenarios begin.
 
 Organization creation inserts the workspace, OWNER membership, pipeline stages,
 and expense categories in one authenticated transaction. Team mutations call
@@ -107,7 +114,7 @@ transaction-local RLS session used by organization authorization. Existing
 database triggers remain responsible for version increments, immutable tenant
 identity, and transaction-coupled audit events. The Next.js adapter translates
 Python snake-case responses into the existing UI contract and falls back to
-Drizzle only when `FASTAPI_INTERNAL_URL` is not configured.
+Drizzle only when `TENANTFLOW_BACKEND=typescript` is explicitly configured.
 
 ## Invoice management
 
@@ -162,5 +169,6 @@ fresh authentication and workspace authorization.
 The Python expense module maps these existing tables with SQLAlchemy and keeps
 all writes inside the restricted RLS transaction. Its Storage gateway forwards
 the user's bearer token to the existing private bucket and never uses a
-service-role credential. FastAPI mode is selected only by the server-side
-`FASTAPI_INTERNAL_URL`; disabling it restores the original TypeScript path.
+service-role credential. FastAPI mode requires the server-side
+`FASTAPI_INTERNAL_URL`; removing that URL fails closed. Rollback requires the
+explicit `TENANTFLOW_BACKEND=typescript` setting.

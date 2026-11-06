@@ -108,14 +108,19 @@ export async function getCustomerThroughBackend(
   organizationId: string,
   customerId: string,
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${organizationId}/customers/${customerId}`,
-    accessToken,
-  );
-  if (!result.enabled) {
-    return getCustomerForUser(userId, organizationId, customerId);
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${organizationId}/customers/${customerId}`,
+      accessToken,
+    );
+    if (!result.enabled) {
+      return getCustomerForUser(userId, organizationId, customerId);
+    }
+    return customerSchema.parse(result.data);
+  } catch (error) {
+    if (error instanceof BackendApiError && error.status === 404) return null;
+    throw error;
   }
-  return customerSchema.parse(result.data);
 }
 
 function customerBody(input: CreateCustomerInput | UpdateCustomerInput) {

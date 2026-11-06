@@ -10,6 +10,7 @@ import {
   deleteCustomerThroughBackend,
   updateCustomerThroughBackend,
 } from "@/lib/backend/customers";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { CustomerConflictError } from "@/lib/customers/mutations";
 import {
   createCustomerSchema,
@@ -90,7 +91,10 @@ export async function createCustomerAction(
       return { message: error.message, status: "error" };
     }
     return {
-      message: "You cannot create a customer in this workspace.",
+      message: backendActionErrorMessage(
+        error,
+        "You cannot create a customer in this workspace.",
+      ),
       status: "error",
     };
   }
@@ -136,7 +140,7 @@ export async function updateCustomerAction(
       message:
         error instanceof CustomerConflictError
           ? error.message
-          : "You cannot update this customer.",
+          : backendActionErrorMessage(error, "You cannot update this customer."),
       status: "error",
     };
   }

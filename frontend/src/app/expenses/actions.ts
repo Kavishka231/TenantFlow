@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import type { ExpenseActionState } from "@/lib/expenses/action-state";
 import { changeExpenseStatusThroughBackend, createExpenseThroughBackend, deleteExpenseThroughBackend, removeExpenseReceiptThroughBackend, updateExpenseThroughBackend, uploadExpenseReceiptThroughBackend } from "@/lib/backend/expenses";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { attachExpenseReceiptForUser, ExpenseConflictError } from "@/lib/expenses/mutations";
 import { getExpenseForUser } from "@/lib/expenses/data";
 import { EXPENSE_RECEIPT_BUCKET, receiptObjectPath, validateReceiptFile } from "@/lib/expenses/receipts";
@@ -31,7 +32,12 @@ function fields(formData: FormData) {
 }
 
 function actionError(error: unknown, fallback: string): ExpenseActionState {
-  return { message: error instanceof ExpenseConflictError ? error.message : fallback, status: "error" };
+  return {
+    message: error instanceof ExpenseConflictError
+      ? error.message
+      : backendActionErrorMessage(error, fallback),
+    status: "error",
+  };
 }
 
 export async function createExpenseAction(_state: ExpenseActionState, formData: FormData): Promise<ExpenseActionState> {

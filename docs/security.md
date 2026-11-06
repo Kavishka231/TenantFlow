@@ -8,6 +8,20 @@ Tenant isolation uses three independent controls:
 2. server-side membership and role authorization; and
 3. PostgreSQL RLS executed under a non-owner, non-`BYPASSRLS` role.
 
+## Server integration boundary
+
+Next.js adapters are server-only and overwrite, rather than trust, any caller
+supplied Authorization or request-correlation header. They accept only internal
+`/api/v1/` paths, forward the current Supabase bearer token, disable caching,
+and validate Python responses before rendering them. FastAPI is selected by
+`TENANTFLOW_BACKEND=fastapi`; a missing internal URL, timeout, 401/403, invalid
+response, or 5xx fails closed. Drizzle fallback occurs only when
+`TENANTFLOW_BACKEND=typescript` was explicitly selected before the request.
+
+Credentialed CORS forbids wildcard origins. Production API and frontend origins
+must use HTTPS. Receipt upload headers and `PUT` are allowlisted, while request
+IDs and download disposition are the only exposed response headers.
+
 The initial migration forces RLS on tenant tables. Membership lookup helpers are `SECURITY DEFINER`, use a fixed empty search path, fully qualify referenced objects, and revoke public execution before granting it to `authenticated`.
 
 ## Organization roles
@@ -78,7 +92,8 @@ count as executed when real database credentials and Auth identities are absent.
 - `STRIPE_WEBHOOK_PROCESSOR` selects `typescript`, `python`, or `disabled`; the
   Next.js route never invokes both processors for one event;
 - Python mode validates that its webhook login is neither superuser nor
-  `BYPASSRLS` and inherits the existing webhook capability before invoking RPC.
+  `BYPASSRLS`, owns no public tables, does not inherit `authenticated`, and
+  inherits the existing webhook capability before invoking RPC.
 
 ## Analytics isolation
 
@@ -156,6 +171,11 @@ updates/deletes include a version predicate. Forced RLS remains the final
 boundary, and existing database triggers write audit events in the same
 transaction without placing contact details or notes in audit metadata.
 
+FastAPI startup rejects a runtime login that owns any RLS-protected application
+table, including supporting item, payment, activity, category, audit, billing,
+and profile tables. Checking only top-level aggregate tables is insufficient
+because PostgreSQL table owners are not constrained like ordinary RLS callers.
+
 Invitation tokens contain 256 bits of randomness and are persisted only as
 SHA-256 hashes. Acceptance delegates verified-email, expiry, recipient,
 single-use, and existing-membership checks to the existing locked PostgreSQL
@@ -174,6 +194,9 @@ Four confirmed development Auth users represent OWNER, ADMIN, MEMBER, and an
 outsider. They must be created through Supabase Auth so `auth.users` and
 `profiles` remain consistent. Test files are gitignored and credentials must
 never be copied into source, command output, screenshots, or CI logs.
+Authenticated Playwright traces are disabled because trace archives can retain
+cookies, authorization headers, and typed test passwords. Failure screenshots
+remain local and must never be committed.
 
 Invitation delivery begins only after its RLS transaction commits. Validation
 errors expose field locations, stable types, and messages but omit submitted

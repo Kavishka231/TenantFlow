@@ -22,9 +22,12 @@ uvicorn app.main:create_app --factory --reload --port 8000
 not own tenant tables, and is neither superuser nor `BYPASSRLS`. Startup fails
 closed if this invariant is not met. Never use `MIGRATION_DATABASE_URL` here.
 
-Set `FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in `frontend/.env.local` to
-route supported server-side operations through this service. The Next.js server forwards the
-Supabase access token; it is never exposed through a public environment value.
+Set `TENANTFLOW_BACKEND=fastapi` and
+`FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in `frontend/.env.local`. The
+Next.js server forwards the Supabase access token; it is never exposed through
+a public environment value. The application fails closed if FastAPI mode lacks
+an internal URL. Use `TENANTFLOW_BACKEND=typescript` only as an intentional
+rollback, never as an automatic retry after a Python request.
 
 ## Endpoints
 
@@ -61,7 +64,7 @@ positive `version` and return `customer_version_conflict` when stale.
 Invoice endpoints map the existing Drizzle tables and call the existing
 PostgreSQL lifecycle/payment functions. They do not create schemas. MEMBER can
 read invoices and PDFs; OWNER and ADMIN can manage drafts, transitions, and
-payments. Next.js uses these endpoints only when `FASTAPI_INTERNAL_URL` is set.
+payments. Next.js uses these endpoints in explicit `fastapi` mode.
 
 Deal endpoints map the existing stages, deals, and activity tables. PostgreSQL
 RLS and triggers remain authoritative for tenant relationships, assignees,
@@ -112,5 +115,6 @@ GRANT authenticated TO tenantflow_runtime_login;
 
 Use that login only for `DATABASE_URL`. Keep the migration connection separate.
 `tenantflow-readiness` prints only booleans and counts; it validates the role,
-database connections, migration count, and presence of all four profiles
-without displaying credentials or identity values.
+database connections, an exact migration-count match, and presence of all four profiles
+plus four distinct, email-confirmed Supabase Auth identities without displaying
+credentials or identity values.

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createOrganizationThroughBackend } from "@/lib/backend/organizations";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
 import type { OrganizationActionState } from "@/lib/organizations/action-state";
 import { OrganizationSlugConflictError } from "@/lib/organizations/create";
@@ -52,7 +53,10 @@ export async function createOrganizationAction(
     }
 
     return {
-      message: "The organization could not be created. Try again.",
+      message: backendActionErrorMessage(
+        error,
+        "The organization could not be created. Try again.",
+      ),
       status: "error",
     };
   }

@@ -2,9 +2,16 @@ import "server-only";
 
 import { z } from "zod";
 
-import { backendRequest } from "@/lib/backend/client";
-import { acceptInvitationForUser } from "@/lib/team/acceptance";
-import { createInvitationForUser, revokeInvitationForUser } from "@/lib/team/invitations";
+import { BackendApiError, backendRequest } from "@/lib/backend/client";
+import {
+  acceptInvitationForUser,
+  InvalidInvitationError,
+} from "@/lib/team/acceptance";
+import {
+  createInvitationForUser,
+  DuplicateInvitationError,
+  revokeInvitationForUser,
+} from "@/lib/team/invitations";
 import { listOrganizationTeam } from "@/lib/team/list";
 import {
   changeMemberRoleForUser,
@@ -46,6 +53,13 @@ const acceptedInvitationSchema = z.object({
   role: z.enum(["admin", "member"]),
 });
 
+function rejectedMembershipChange(error: unknown): boolean {
+  return (
+    error instanceof BackendApiError &&
+    error.code === "membership_change_rejected"
+  );
+}
+
 export async function listTeamThroughBackend(
   userId: string,
   accessToken: string | undefined,
@@ -82,16 +96,23 @@ export async function createInvitationThroughBackend(
   organizationName: string,
   input: { organizationId: string; email: string; role: "admin" | "member" },
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${input.organizationId}/team/invitations`,
-    accessToken,
-    { method: "POST", body: JSON.stringify({ email: input.email, role: input.role }) },
-  );
-  if (!result.enabled) {
-    return createInvitationForUser(userId, organizationName, input);
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/team/invitations`,
+      accessToken,
+      { method: "POST", body: JSON.stringify({ email: input.email, role: input.role }) },
+    );
+    if (!result.enabled) {
+      return createInvitationForUser(userId, organizationName, input);
+    }
+    const parsed = invitationCreatedSchema.parse(result.data);
+    return { delivery: parsed.delivery, expiresAt: parsed.expires_at, id: parsed.id };
+  } catch (error) {
+    if (error instanceof BackendApiError && error.code === "duplicate_invitation") {
+      throw new DuplicateInvitationError();
+    }
+    throw error;
   }
-  const parsed = invitationCreatedSchema.parse(result.data);
-  return { delivery: parsed.delivery, expiresAt: parsed.expires_at, id: parsed.id };
 }
 
 export async function revokeInvitationThroughBackend(
@@ -100,13 +121,18 @@ export async function revokeInvitationThroughBackend(
   organizationId: string,
   invitationId: string,
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${organizationId}/team/invitations/${invitationId}`,
-    accessToken,
-    { method: "DELETE" },
-  );
-  if (!result.enabled) return revokeInvitationForUser(userId, invitationId);
-  return mutationSchema.parse(result.data).changed;
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${organizationId}/team/invitations/${invitationId}`,
+      accessToken,
+      { method: "DELETE" },
+    );
+    if (!result.enabled) return revokeInvitationForUser(userId, invitationId);
+    return mutationSchema.parse(result.data).changed;
+  } catch (error) {
+    if (rejectedMembershipChange(error)) return false;
+    throw error;
+  }
 }
 
 export async function changeMemberRoleThroughBackend(
@@ -114,13 +140,18 @@ export async function changeMemberRoleThroughBackend(
   accessToken: string | undefined,
   input: { organizationId: string; userId: string; role: "admin" | "member" },
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}/role`,
-    accessToken,
-    { method: "PATCH", body: JSON.stringify({ role: input.role }) },
-  );
-  if (!result.enabled) return changeMemberRoleForUser(userId, input);
-  return mutationSchema.parse(result.data).changed;
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}/role`,
+      accessToken,
+      { method: "PATCH", body: JSON.stringify({ role: input.role }) },
+    );
+    if (!result.enabled) return changeMemberRoleForUser(userId, input);
+    return mutationSchema.parse(result.data).changed;
+  } catch (error) {
+    if (rejectedMembershipChange(error)) return false;
+    throw error;
+  }
 }
 
 export async function removeMemberThroughBackend(
@@ -128,13 +159,18 @@ export async function removeMemberThroughBackend(
   accessToken: string | undefined,
   input: { organizationId: string; userId: string },
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}`,
-    accessToken,
-    { method: "DELETE" },
-  );
-  if (!result.enabled) return removeMemberForUser(userId, input);
-  return mutationSchema.parse(result.data).changed;
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}`,
+      accessToken,
+      { method: "DELETE" },
+    );
+    if (!result.enabled) return removeMemberForUser(userId, input);
+    return mutationSchema.parse(result.data).changed;
+  } catch (error) {
+    if (rejectedMembershipChange(error)) return false;
+    throw error;
+  }
 }
 
 export async function transferOwnershipThroughBackend(
@@ -142,13 +178,18 @@ export async function transferOwnershipThroughBackend(
   accessToken: string | undefined,
   input: { organizationId: string; userId: string },
 ) {
-  const result = await backendRequest(
-    `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}/transfer-ownership`,
-    accessToken,
-    { method: "POST" },
-  );
-  if (!result.enabled) return transferOwnershipForUser(userId, input);
-  return mutationSchema.parse(result.data).changed;
+  try {
+    const result = await backendRequest(
+      `/api/v1/organizations/${input.organizationId}/team/members/${input.userId}/transfer-ownership`,
+      accessToken,
+      { method: "POST" },
+    );
+    if (!result.enabled) return transferOwnershipForUser(userId, input);
+    return mutationSchema.parse(result.data).changed;
+  } catch (error) {
+    if (rejectedMembershipChange(error)) return false;
+    throw error;
+  }
 }
 
 export async function acceptInvitationThroughBackend(
@@ -156,15 +197,22 @@ export async function acceptInvitationThroughBackend(
   accessToken: string | undefined,
   token: string,
 ) {
-  const result = await backendRequest("/api/v1/invitations/accept", accessToken, {
-    method: "POST",
-    body: JSON.stringify({ token }),
-  });
-  if (!result.enabled) return acceptInvitationForUser(userId, token);
-  const parsed = acceptedInvitationSchema.parse(result.data);
-  return {
-    organizationId: parsed.organization_id,
-    organizationName: parsed.organization_name,
-    role: parsed.role,
-  };
+  try {
+    const result = await backendRequest("/api/v1/invitations/accept", accessToken, {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
+    if (!result.enabled) return acceptInvitationForUser(userId, token);
+    const parsed = acceptedInvitationSchema.parse(result.data);
+    return {
+      organizationId: parsed.organization_id,
+      organizationName: parsed.organization_name,
+      role: parsed.role,
+    };
+  } catch (error) {
+    if (error instanceof BackendApiError && error.code === "invalid_invitation") {
+      throw new InvalidInvitationError();
+    }
+    throw error;
+  }
 }

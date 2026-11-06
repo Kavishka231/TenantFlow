@@ -2,8 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
-import { backendRequest } from "@/lib/backend/client";
-import { createOrganizationForUser } from "@/lib/organizations/create";
+import { BackendApiError, backendRequest } from "@/lib/backend/client";
+import {
+  createOrganizationForUser,
+  OrganizationSlugConflictError,
+} from "@/lib/organizations/create";
 import {
   listOrganizationsForUser,
   type OrganizationSummary,
@@ -42,14 +45,24 @@ export async function createOrganizationThroughBackend(
   accessToken: string | undefined,
   input: CreateOrganizationInput,
 ) {
-  const result = await backendRequest("/api/v1/organizations", accessToken, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-  if (!result.enabled) {
-    return createOrganizationForUser(userId, input);
+  try {
+    const result = await backendRequest("/api/v1/organizations", accessToken, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    if (!result.enabled) {
+      return createOrganizationForUser(userId, input);
+    }
+    return organizationListSchema.element.parse(result.data);
+  } catch (error) {
+    if (
+      error instanceof BackendApiError &&
+      error.code === "organization_slug_conflict"
+    ) {
+      throw new OrganizationSlugConflictError();
+    }
+    throw error;
   }
-  return organizationListSchema.element.parse(result.data);
 }
 
 export async function updateOrganizationThroughBackend(

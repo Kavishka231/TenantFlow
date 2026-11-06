@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { acceptInvitationThroughBackend } from "@/lib/backend/team";
+import { backendActionErrorMessage } from "@/lib/backend/errors";
 import { setSelectedWorkspace } from "@/lib/organizations/workspace";
 import {
   InvalidInvitationError,
@@ -54,7 +55,7 @@ export async function acceptInvitationAction(
       message:
         error instanceof InvalidInvitationError
           ? error.message
-          : "The invitation could not be accepted.",
+          : backendActionErrorMessage(error, "The invitation could not be accepted."),
       status: "error",
     };
   }

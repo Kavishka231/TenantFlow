@@ -4,7 +4,7 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 18 migrates Stripe Test Mode billing and dashboard analytics behind the optional FastAPI adapter while preserving the verified TypeScript fallback and an explicit single-webhook-processor rollback switch. Development migrations remain applied through `0024`; live RLS, Stripe, browser, and Auth verification remain credential-dependent:
+Day 19 completes the server-only Next.js-to-FastAPI integration audit. FastAPI is the intended backend, the TypeScript/Drizzle implementation remains an explicit rollback mode, and failed or unauthorized Python mutations never trigger a second database operation. Development migrations remain applied through `0024`; live RLS, Stripe, browser, and Auth verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -120,6 +120,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 DATABASE_URL=postgresql://application_user:password@host:5432/postgres?sslmode=require
 MIGRATION_DATABASE_URL=postgresql://migration_user:password@host:5432/postgres?sslmode=require
+TENANTFLOW_BACKEND=fastapi
+FASTAPI_INTERNAL_URL=http://127.0.0.1:8000
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me
 STRIPE_STARTER_PRICE_ID=price_replace_me
@@ -167,12 +169,14 @@ Start the application:
 npm run dev
 ```
 
-Start the optional FastAPI path in a second terminal by following
-[backend/README.md](backend/README.md), then set
-`FASTAPI_INTERNAL_URL=http://127.0.0.1:8000` in the frontend environment.
-With that value, organization, team, and customer server operations use
-FastAPI. Without it, the existing verified TypeScript implementation remains
-active.
+Start FastAPI in a second terminal by following
+[backend/README.md](backend/README.md). The default `TENANTFLOW_BACKEND=fastapi`
+requires `FASTAPI_INTERNAL_URL`; missing configuration fails closed instead of
+silently writing through Drizzle. For a deliberate rollback, set
+`TENANTFLOW_BACKEND=typescript` and keep `STRIPE_WEBHOOK_PROCESSOR` aligned with
+the one processor that should receive Stripe events. A FastAPI HTTP failure,
+expired session, permission denial, timeout, or invalid response never invokes
+the TypeScript mutation afterward.
 
 ## Verification commands
 
@@ -239,6 +243,7 @@ state; normal authenticated connections cannot execute that function.
 - [API](docs/api.md)
 - [Database](docs/database.md)
 - [Security](docs/security.md)
+- [Live verification](docs/live-verification.md)
 - [Roadmap](docs/roadmap.md)
 
 No license has been selected. Do not assume permission to redistribute the project.

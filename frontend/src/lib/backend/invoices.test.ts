@@ -49,7 +49,7 @@ describe("invoice FastAPI adapter", () => {
       page: 1, page_count: 2, page_size: 10, total: 11,
     } });
     const result = await listInvoicesThroughBackend("user", "token", organizationId, query);
-    expect(result).toMatchObject({ pageCount: 2, total: 11 });
+    expect(result).toMatchObject({ pageCount: 2, pageSize: 10, total: 11 });
     expect(result.invoices[0]).toMatchObject({ invoiceNumber: "INV-000001", totalMinor: 1200 });
     expect(mocks.backendRequest.mock.calls[0]?.[0]).toContain("status=sent");
   });

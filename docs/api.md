@@ -104,6 +104,12 @@ Error responses use the shared envelope:
 }
 ```
 
+The Next.js server preserves the stable error code, safe message, and request
+ID. Session expiry is returned as 401, permission-denied and missing private
+downloads share a non-enumerable 404 response, and upstream availability errors
+remain distinct from missing records. These failures never activate the
+TypeScript mutation fallback.
+
 Drizzle remains the migration source of truth. FastAPI uses the restricted
 runtime role and transaction-local authenticated claims; it never receives the
 migration database URL.

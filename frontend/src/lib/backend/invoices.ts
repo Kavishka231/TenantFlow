@@ -60,7 +60,13 @@ const listSchema = z.object({
   }).transform(({ invoice_number, customer_name, issue_date, due_date, total_minor, paid_minor, ...invoice }) => ({
     ...invoice, invoiceNumber: invoice_number, customerName: customer_name, issueDate: issue_date, dueDate: due_date, totalMinor: total_minor, paidMinor: paid_minor,
   }))), page: z.number().int(), page_count: z.number().int(), page_size: z.number().int(), total: z.number().int(),
-}).transform(({ invoices, page, page_count, total }) => ({ invoices, page, pageCount: page_count, total }));
+}).transform(({ invoices, page, page_count, page_size, total }) => ({
+  invoices,
+  page,
+  pageCount: page_count,
+  pageSize: page_size,
+  total,
+}));
 const customerOptionsSchema = z.array(z.object({ id: z.uuid(), name: z.string(), company: z.string().nullable() }));
 
 function invoiceBody(input: CreateInput | UpdateInput) {
