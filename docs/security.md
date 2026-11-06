@@ -92,7 +92,8 @@ count as executed when real database credentials and Auth identities are absent.
 - `STRIPE_WEBHOOK_PROCESSOR` selects `typescript`, `python`, or `disabled`; the
   Next.js route never invokes both processors for one event;
 - Python mode validates that its webhook login is neither superuser nor
-  `BYPASSRLS` and inherits the existing webhook capability before invoking RPC.
+  `BYPASSRLS`, owns no public tables, does not inherit `authenticated`, and
+  inherits the existing webhook capability before invoking RPC.
 
 ## Analytics isolation
 

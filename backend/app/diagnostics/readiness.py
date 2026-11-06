@@ -1,5 +1,6 @@
 import asyncio
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -79,6 +80,25 @@ class ReadinessReport(BaseModel):
         )
 
 
+@dataclass(frozen=True)
+class WebhookRoleState:
+    authenticated_member: bool
+    bypass_rls: bool
+    capability_member: bool
+    owns_public_tables: bool
+    superuser: bool
+
+
+def webhook_role_is_safe(state: WebhookRoleState) -> bool:
+    return (
+        not state.superuser
+        and not state.bypass_rls
+        and state.capability_member
+        and not state.authenticated_member
+        and not state.owns_public_tables
+    )
+
+
 def expected_migration_count() -> int:
     journal_path = REPOSITORY_ROOT / "frontend/drizzle/meta/_journal.json"
     journal: dict[str, Any] = json.loads(journal_path.read_text(encoding="utf-8"))
@@ -131,12 +151,24 @@ async def check_readiness(config: ReadinessSettings) -> ReadinessReport:
     ) as webhook_connection:
         webhook_role_result = await webhook_connection.execute(
             """select r.rolsuper, r.rolbypassrls,
-                      pg_has_role(current_user, 'tenantflow_stripe_webhook', 'member')
+                      pg_has_role(current_user, 'tenantflow_stripe_webhook', 'member'),
+                      pg_has_role(current_user, 'authenticated', 'member'),
+                      exists (
+                        select 1 from pg_class c
+                        join pg_namespace n on n.oid = c.relnamespace
+                        where n.nspname = 'public' and c.relowner = r.oid
+                      )
                from pg_roles r where r.rolname=current_user"""
         )
         webhook_role = await webhook_role_result.fetchone()
-    webhook_safe = bool(
-        webhook_role and not webhook_role[0] and not webhook_role[1] and webhook_role[2]
+    webhook_safe = webhook_role is not None and webhook_role_is_safe(
+        WebhookRoleState(
+            superuser=bool(webhook_role[0]),
+            bypass_rls=bool(webhook_role[1]),
+            capability_member=bool(webhook_role[2]),
+            authenticated_member=bool(webhook_role[3]),
+            owns_public_tables=bool(webhook_role[4]),
+        )
     )
 
     return ReadinessReport(

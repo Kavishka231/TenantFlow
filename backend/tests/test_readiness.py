@@ -4,7 +4,9 @@ from pydantic import ValidationError
 from app.diagnostics.readiness import (
     ReadinessReport,
     ReadinessSettings,
+    WebhookRoleState,
     expected_migration_count,
+    webhook_role_is_safe,
 )
 
 
@@ -59,3 +61,23 @@ def test_readiness_requires_four_distinct_test_identities() -> None:
             RLS_TEST_MEMBER_ID="00000000-0000-4000-8000-000000000003",
             RLS_TEST_OUTSIDER_ID="00000000-0000-4000-8000-000000000004",
         )
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        WebhookRoleState(True, False, True, False, False),
+        WebhookRoleState(False, True, True, False, False),
+        WebhookRoleState(False, False, False, False, False),
+        WebhookRoleState(False, False, True, True, False),
+        WebhookRoleState(False, False, True, False, True),
+    ],
+)
+def test_webhook_readiness_rejects_privileged_roles(state: WebhookRoleState) -> None:
+    assert webhook_role_is_safe(state) is False
+
+
+def test_webhook_readiness_accepts_dedicated_capability_only() -> None:
+    assert webhook_role_is_safe(
+        WebhookRoleState(False, False, True, False, False)
+    ) is True
