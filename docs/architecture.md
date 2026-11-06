@@ -67,6 +67,11 @@ validated at startup and rejected if it owns tenant tables, bypasses RLS, is a
 superuser, or does not inherit `authenticated`. No existing TypeScript business
 logic is removed merely because a Python endpoint exists.
 
+Live Playwright configuration starts Next.js and FastAPI as separate local
+processes when `TENANTFLOW_BACKEND=fastapi`. The Python process inherits only
+the test environment, uses the restricted `DATABASE_URL`, and must report a
+healthy `/api/v1/health` endpoint before browser scenarios begin.
+
 Organization creation inserts the workspace, OWNER membership, pipeline stages,
 and expense categories in one authenticated transaction. Team mutations call
 the existing PostgreSQL functions rather than recreating locking and role
