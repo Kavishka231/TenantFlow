@@ -115,5 +115,5 @@ GRANT authenticated TO tenantflow_runtime_login;
 
 Use that login only for `DATABASE_URL`. Keep the migration connection separate.
 `tenantflow-readiness` prints only booleans and counts; it validates the role,
-database connections, migration count, and presence of all four profiles
+database connections, an exact migration-count match, and presence of all four profiles
 without displaying credentials or identity values.

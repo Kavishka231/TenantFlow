@@ -17,6 +17,10 @@ def test_readiness_requires_role_migrations_and_all_identities() -> None:
         webhook_role_safe=True,
     )
     missing_identity = ready.model_copy(update={"test_identities_found": 3})
+    database_ahead = ready.model_copy(update={"migrations_applied": 26})
+    database_behind = ready.model_copy(update={"migrations_applied": 24})
 
     assert ready.ready is True
     assert missing_identity.ready is False
+    assert database_ahead.ready is False
+    assert database_behind.ready is False

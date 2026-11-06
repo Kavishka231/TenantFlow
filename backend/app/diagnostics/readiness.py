@@ -56,7 +56,7 @@ class ReadinessReport(BaseModel):
             self.runtime_connected
             and self.runtime_role_safe
             and self.migration_connected
-            and self.migrations_applied >= self.migrations_expected
+            and self.migrations_applied == self.migrations_expected
             and self.test_identities_found == self.test_identities_expected
             and self.webhook_connected
             and self.webhook_role_safe
