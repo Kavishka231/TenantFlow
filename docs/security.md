@@ -204,3 +204,28 @@ values and raw validator exceptions. Unexpected errors use a request ID and a
 generic response while full diagnostics remain server-side.
 
 RLS integration assertions refuse to run through a superuser, `BYPASSRLS` role, or tenant-table owner. A separate migration connection is used only to arrange and remove fixtures; every tested read and mutation uses the restricted runtime role.
+
+## Build and deployment security
+
+- Docker build contexts exclude environment files, credentials, test artifacts,
+  local dependencies, VCS data, keys, and certificates.
+- Production images use multi-stage builds and fixed non-root numeric users.
+- Runtime containers drop Linux capabilities and enable `no-new-privileges` in
+  Compose; platform secrets are injected at runtime rather than image build time.
+- The FastAPI container receives only the restricted runtime URL and dedicated
+  Stripe webhook URL. Migration credentials never enter an application deploy.
+- Vercel is configured with `TENANTFLOW_BACKEND=fastapi`; its FastAPI URL and all
+  server secrets remain non-public variables. Only `NEXT_PUBLIC_*` values may be
+  included in browser bundles.
+- Production CORS permits exact HTTPS origins and rejects wildcards. The browser
+  does not call FastAPI directly, so CORS is defense in depth rather than an
+  authorization mechanism.
+- Stripe uses Test Mode and one configured processor. Switching processors is a
+  coordinated disable/redeploy/enable operation, not an automatic fallback.
+
+Normal CI uses placeholder configuration and cannot claim live tenant security.
+The manually triggered `tenantflow-live-security` environment holds separate
+disposable credentials, should require reviewer approval, and fails when any
+credential is absent, no test executes, or any RLS/Playwright scenario skips.
+Authenticated traces are disabled and live reports are not uploaded as public
+artifacts.

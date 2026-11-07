@@ -13,7 +13,7 @@ services:
       - key: VALIDATE_DATABASE_ROLE
         value: "true"
       - key: STRIPE_WEBHOOK_PROCESSOR
-        value: python
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL

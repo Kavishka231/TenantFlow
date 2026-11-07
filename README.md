@@ -4,7 +4,13 @@ TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Nex
 
 ## Current status
 
-Day 19 completes the server-only Next.js-to-FastAPI integration audit. FastAPI is the intended backend, the TypeScript/Drizzle implementation remains an explicit rollback mode, and failed or unauthorized Python mutations never trigger a second database operation. Development migrations remain applied through `0024`; live RLS, Stripe, browser, and Auth verification remain credential-dependent:
+Day 21 adds production containerization, repeatable local orchestration,
+required CI quality and dependency gates, isolated live-security automation, and
+Vercel/Render deployment preparation. FastAPI remains the intended backend, the
+TypeScript/Drizzle implementation remains an explicit rollback mode, and failed
+or unauthorized Python mutations never trigger a second database operation.
+Development migrations remain applied through `0024`; live RLS, Stripe,
+browser, and Auth verification remain credential-dependent:
 
 - Next.js App Router, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
 - responsive public, authentication, and protected dashboard layouts
@@ -178,6 +184,21 @@ the one processor that should receive Stripe events. A FastAPI HTTP failure,
 expired session, permission denial, timeout, or invalid response never invokes
 the TypeScript mutation afterward.
 
+## Container development
+
+Docker users can start both services through the root Compose file:
+
+```bash
+cp compose.env.example .env.compose.local
+docker compose --env-file .env.compose.local up --build
+```
+
+Replace the placeholders with development-only Supabase, restricted runtime,
+and Stripe Test Mode values. The file is gitignored. Compose exposes Next.js
+and FastAPI only on loopback, waits for backend health, and uses the private
+service name for frontend-to-backend requests. Application images run as
+non-root users and contain neither tests nor local environment files.
+
 ## Verification commands
 
 ```bash
@@ -243,6 +264,7 @@ state; normal authenticated connections cannot execute that function.
 - [API](docs/api.md)
 - [Database](docs/database.md)
 - [Security](docs/security.md)
+- [Deployment](docs/deployment.md)
 - [Live verification](docs/live-verification.md)
 - [Roadmap](docs/roadmap.md)
 

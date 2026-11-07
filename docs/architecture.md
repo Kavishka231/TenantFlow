@@ -172,3 +172,29 @@ the user's bearer token to the existing private bucket and never uses a
 service-role credential. FastAPI mode requires the server-side
 `FASTAPI_INTERNAL_URL`; removing that URL fails closed. Rollback requires the
 explicit `TENANTFLOW_BACKEND=typescript` setting.
+
+## Runtime and deployment boundary
+
+The production topology separates the public Next.js service from the FastAPI
+container while keeping Supabase as the managed identity, database, and Storage
+boundary. Browser traffic reaches Next.js over HTTPS. Only server-side adapters
+call FastAPI, forwarding the current Supabase bearer token over HTTPS. FastAPI
+then independently verifies the token and establishes transaction-local RLS
+claims through the restricted runtime login.
+
+Neither application image contains migration tooling credentials or runs schema
+changes. Drizzle remains the single migration history, applied by a separate
+controlled process. FastAPI startup validates that its login is neither an
+owner, superuser, nor `BYPASSRLS` and that it inherits `authenticated`.
+
+Both images use multi-stage builds and numeric non-root users. Compose adds a
+private bridge network, loopback-only host ports, dropped capabilities,
+`no-new-privileges`, read-only temporary filesystems, and health-dependent
+startup. Render consumes the same FastAPI image and its platform `PORT`; Vercel
+builds from `frontend/` in explicit FastAPI mode.
+
+FastAPI emits one JSON access record per request with method, path, status,
+duration, and a validated or generated request ID. Query strings and bearer
+tokens are never logged. The response returns the correlation ID and safe
+security headers; unexpected production errors retain details server-side and
+return only the stable public error envelope.
