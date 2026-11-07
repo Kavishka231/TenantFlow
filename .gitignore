@@ -12,6 +12,7 @@ test-results/
 .env.*
 !.env.example
 !.env.test.example
+.env.compose.local
 
 # Editors and operating systems
 .DS_Store

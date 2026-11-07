@@ -205,9 +205,30 @@ this security boundary to `main`. Missing credentials are reported as skips.
 Live Stripe sandbox, RLS, and browser verification remain mandatory before
 merging this security boundary to `main`.
 
-## Recommended Day 19
+## Day 19 — full-stack integration and bug fixing
 
-1. provision restricted runtime and disposable Auth identities in CI;
-2. execute customer, invoice, and deal live security workflows;
-3. add API latency budgets for large pipelines;
-4. add operational tracing for FastAPI-to-Storage receipt requests.
+- audited server-only adapters across every migrated business module
+- aligned FastAPI request/response contracts and fail-closed mutation behavior
+- preserved TypeScript only as an explicitly selected rollback implementation
+- expanded unit, contract, and authenticated browser coverage
+
+## Day 20 — live integration and security verification preparation
+
+- restricted runtime, migration, webhook, and disposable-identity diagnostics
+- exact migration-count and confirmed Auth identity readiness checks
+- live RLS, Stripe Test Mode, and authenticated Playwright runbook
+- explicit rule that unavailable or skipped security checks block merging
+
+## Day 21 — Docker, CI/CD, and deployment preparation
+
+- multi-stage non-root Next.js and FastAPI images with health checks
+- hardened local Compose networking and placeholder-only configuration
+- GitHub Actions for Ruff, mypy, Pytest, ESLint, TypeScript, Vitest, builds,
+  dependency auditing, and production image verification
+- manually approved live-security workflow that fails on missing or skipped checks
+- Vercel frontend and Render FastAPI deployment manifests
+- structured request logging, request correlation, secure headers, and deployment
+  documentation
+
+Live RLS, Stripe sandbox, and authenticated Playwright checks remain mandatory
+before merging or promoting these deployment changes.

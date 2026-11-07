@@ -18,6 +18,22 @@ grant it only `tenantflow_stripe_webhook`, and set its connection string as
 `STRIPE_WEBHOOK_DATABASE_URL`. It must not inherit `authenticated` or own any
 public table.
 
+Create the logins from the controlled migration connection, substituting
+generated development-only passwords without saving them in SQL files:
+
+```sql
+CREATE ROLE tenantflow_runtime_login LOGIN PASSWORD 'generated-secret'
+  NOSUPERUSER NOBYPASSRLS INHERIT;
+GRANT authenticated TO tenantflow_runtime_login;
+
+CREATE ROLE tenantflow_stripe_webhook_login LOGIN PASSWORD 'generated-secret'
+  NOSUPERUSER NOBYPASSRLS INHERIT;
+GRANT tenantflow_stripe_webhook TO tenantflow_stripe_webhook_login;
+```
+
+Do not grant either login ownership, `postgres`, `service_role`, or migration
+capabilities. Rotate both passwords after any suspected log exposure.
+
 ## 2. Disposable Supabase identities
 
 In Supabase Auth, create four unique development-only users for OWNER, ADMIN,
@@ -63,6 +79,10 @@ signing secret privately into the test environment and do not retain CLI output.
 Use Stripe's documented test card `4242 4242 4242 4242` with any future expiry
 and CVC. Never enter a real card.
 
+The automated browser check stops after confirming a Test Checkout redirect. It
+does not enter a card or create a charge. Webhook tests use signed sandbox
+events and the dedicated least-privilege connection.
+
 ## 4. Full-stack browser environment
 
 Set these values in `frontend/.env.test.local` in addition to the shared test
@@ -82,7 +102,40 @@ Allow the local callback URL in Supabase Auth. Playwright starts both Next.js
 and FastAPI, waits for both health endpoints, and disables authenticated trace
 archives. Install Chromium once with `npx playwright install chromium`.
 
-## 5. Verification order
+## 5. GitHub live-security environment
+
+Create a GitHub Actions environment named `tenantflow-live-security`, restrict
+it to trusted branches, and require a reviewer if the repository plan supports
+deployment protection rules. Add these environment secrets, never repository
+variables or pull-request fixtures:
+
+```text
+LIVE_DATABASE_URL
+LIVE_MIGRATION_DATABASE_URL
+LIVE_SUPABASE_URL
+LIVE_SUPABASE_PUBLISHABLE_KEY
+LIVE_RLS_TEST_OWNER_ID
+LIVE_RLS_TEST_ADMIN_ID
+LIVE_RLS_TEST_MEMBER_ID
+LIVE_RLS_TEST_OUTSIDER_ID
+LIVE_E2E_USER_EMAIL
+LIVE_E2E_USER_PASSWORD
+LIVE_E2E_SECOND_USER_EMAIL
+LIVE_E2E_SECOND_USER_PASSWORD
+LIVE_STRIPE_SECRET_KEY
+LIVE_STRIPE_WEBHOOK_SECRET
+LIVE_STRIPE_STARTER_PRICE_ID
+LIVE_STRIPE_GROWTH_PRICE_ID
+LIVE_STRIPE_WEBHOOK_DATABASE_URL
+```
+
+Use only a disposable Supabase development project. The workflow is manual, is
+never triggered by an untrusted pull request, serializes runs to protect shared
+fixtures, verifies that all three database credentials differ, and rejects a
+Stripe key that is not Test Mode. Missing configuration fails the job instead
+of skipping it.
+
+## 6. Verification order
 
 From `backend`, run `tenantflow-readiness` first. Continue only when it reports
 an exact migration match, four confirmed Auth identities and profiles, a safe
@@ -93,3 +146,9 @@ remaining lint, type, unit, build, and Drizzle checks.
 Skipped RLS, Stripe, or Playwright scenarios are blockers, not passes. After a
 failed run, verify fixture cleanup using the migration connection before
 rerunning. Delete the four disposable Auth users when verification is complete.
+
+For CI, manually run **Live security verification** only after the normal
+quality, dependency, and image-build workflows pass. Its report guard requires
+at least one executed test and zero skipped or failed tests in each backend RLS,
+frontend RLS, and Playwright report. A green normal CI workflow does not imply
+that live security was executed.

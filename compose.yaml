@@ -1,0 +1,59 @@
+name: tenantflow
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ${TENANTFLOW_ENV_FILE:-.env.compose.local}
+    environment:
+      CORS_ORIGINS: http://127.0.0.1:3000
+      ENVIRONMENT: development
+      FRONTEND_APP_URL: http://127.0.0.1:3000
+      VALIDATE_DATABASE_ROLE: "true"
+    init: true
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks:
+      - application
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Set NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - ${TENANTFLOW_ENV_FILE:-.env.compose.local}
+    environment:
+      FASTAPI_INTERNAL_URL: http://backend:8000
+      TENANTFLOW_BACKEND: fastapi
+    init: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    networks:
+      - application
+
+networks:
+  application:
+    driver: bridge

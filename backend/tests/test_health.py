@@ -10,6 +10,14 @@ def test_health(client: TestClient) -> None:
         "version": "0.1.0",
     }
     assert response.headers["x-request-id"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_replaces_untrusted_request_ids(client: TestClient) -> None:
+    response = client.get("/api/v1/health", headers={"X-Request-ID": "unsafe value"})
+
+    assert response.status_code == 200
+    assert response.headers["x-request-id"] != "unsafe value"
 
 
 def test_cors_preflight_allows_receipt_upload_headers(client: TestClient) -> None:
