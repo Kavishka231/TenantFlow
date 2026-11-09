@@ -1,5 +1,13 @@
 # Roadmap
 
+## Status definitions
+
+- **Implemented:** source code, tests, or configuration exists in the repository.
+- **Verified:** the relevant non-secret automated checks executed successfully.
+- **Pending live verification:** the implementation exists, but credential-dependent RLS, Supabase Auth, Storage, Stripe Test Mode, or authenticated browser checks have not executed successfully with zero skips.
+
+An implemented feature is never described as live-verified solely because its credential-gated test skipped. The manual live-security workflow is the release gate for those claims.
+
 ## Day 1 — project foundation
 
 - Next.js, TypeScript, Tailwind CSS, ESLint, and shadcn/ui
@@ -232,3 +240,37 @@ merging this security boundary to `main`.
 
 Live RLS, Stripe sandbox, and authenticated Playwright checks remain mandatory
 before merging or promoting these deployment changes.
+
+## Day 22 — final portfolio preparation
+
+### Implemented
+
+- polished public, authentication, pricing, and shared control styling with accessible mobile target sizes;
+- role-aware responsive navigation across dashboard, customers, invoices, sales, expenses, team, billing, and settings;
+- session-required messaging that preserves the complete safe return URL;
+- consistent application-level error and unavailable-resource states;
+- fictional development-only demo data and a workflow-based demonstration guide;
+- genuine production-rendered desktop and mobile screenshots;
+- runtime, authorization, CI, and deployment architecture diagrams;
+- reviewer-focused README sections for technology, screenshots, security, testing, and deployment;
+- Drizzle consistency in the standard frontend CI gate.
+
+### Verified without live credentials
+
+- Ruff and strict mypy;
+- FastAPI unit and contract tests;
+- ESLint and TypeScript checks;
+- Vitest unit and adapter tests;
+- Next.js production build;
+- Drizzle schema/migration consistency;
+- production Docker image builds, numeric non-root identities, and dependency audits in GitHub Actions.
+
+### Pending live verification
+
+- PostgreSQL cross-tenant RLS execution under the restricted runtime role;
+- authenticated Playwright workflows using two confirmed disposable Supabase identities;
+- private Supabase Storage receipt behavior;
+- Stripe Test Mode checkout, portal, signed webhook, and subscription synchronization;
+- deployed HTTPS frontend-to-backend smoke testing on the final Vercel and Render origins.
+
+Day 22 remains on its feature branch until all mandatory live checks execute with zero skips and failures. UI screenshots prove only that the rendered public application is genuine; they are not evidence of authenticated or live-security verification.
