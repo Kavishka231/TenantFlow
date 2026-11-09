@@ -53,24 +53,22 @@ const pythonCommand = process.platform === "win32"
   ? `cd ..\\backend && .venv\\Scripts\\python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port ${fastApiPort}`
   : `cd ../backend && .venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port ${fastApiPort}`;
 
-const webServer = hasLiveConfiguration
-  ? [
-      {
-        command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+const webServer = [
+  {
+    command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    url: baseURL,
+  },
+  ...(hasLiveConfiguration && backendMode === "fastapi" && fastApiUrl
+    ? [{
+        command: pythonCommand,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-        url: baseURL,
-      },
-      ...(backendMode === "fastapi" && fastApiUrl
-        ? [{
-            command: pythonCommand,
-            reuseExistingServer: !process.env.CI,
-            timeout: 120_000,
-            url: new URL("/api/v1/health", fastApiUrl).toString(),
-          }]
-        : []),
-    ]
-  : undefined;
+        url: new URL("/api/v1/health", fastApiUrl).toString(),
+      }]
+    : []),
+];
 
 export default defineConfig({
   testDir: "./e2e",
@@ -89,7 +87,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: process.env.PLAYWRIGHT_CHROMIUM_CHANNEL,
+      },
     },
   ],
   webServer,
