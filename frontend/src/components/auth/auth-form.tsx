@@ -32,7 +32,7 @@ export function AuthForm({ action, mode, next }: AuthFormProps) {
   const isLogin = mode === "login";
 
   return (
-    <Card className="w-full max-w-md border-slate-200 shadow-xl shadow-slate-200/60">
+    <Card className="w-full max-w-md border-white/10 bg-white shadow-2xl shadow-black/30">
       <CardHeader>
         <CardTitle className="text-2xl">
           {isLogin ? "Welcome back" : "Create your account"}
@@ -90,7 +90,7 @@ export function AuthForm({ action, mode, next }: AuthFormProps) {
               {state.message}
             </p>
           ) : null}
-          <Button className="h-10 w-full" type="submit" disabled={pending}>
+          <Button className="w-full" type="submit" disabled={pending} aria-busy={pending}>
             {pending ? "Please wait…" : isLogin ? "Sign in" : "Create account"}
           </Button>
         </form>

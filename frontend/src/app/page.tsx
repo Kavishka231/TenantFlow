@@ -1,9 +1,12 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BriefcaseBusiness,
   Building2,
+  ChartNoAxesCombined,
   CheckCircle2,
   LockKeyhole,
+  ReceiptText,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -15,62 +18,72 @@ const principles = [
   {
     icon: Building2,
     title: "Workspace ready",
-    description: "A clean foundation for organization-scoped work.",
+    description: "Customers, invoices, sales, expenses, and billing in one tenant-safe workspace.",
   },
   {
     icon: ShieldCheck,
     title: "Isolation first",
-    description: "Authorization and database policies are designed together.",
+    description: "Server authorization and PostgreSQL RLS reinforce every tenant boundary.",
   },
   {
     icon: Users,
     title: "Built for teams",
-    description: "Membership and roles are first-class platform concepts.",
+    description: "Owner, admin, and member roles keep collaboration clear and auditable.",
   },
+];
+
+const capabilities = [
+  { icon: BriefcaseBusiness, label: "Customer and sales operations" },
+  { icon: ReceiptText, label: "Invoices and expense tracking" },
+  { icon: ChartNoAxesCombined, label: "Currency-safe business analytics" },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 lg:px-8">
-        <header className="flex h-20 items-center justify-between border-b border-white/10">
+    <main id="main-content" className="min-h-screen overflow-hidden bg-slate-950 text-white">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-950">Skip to content</a>
+      <div className="page-shell flex min-h-screen flex-col">
+        <header className="flex min-h-20 items-center justify-between gap-4 border-b border-white/10 py-4">
           <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight">
             <span className="grid size-9 place-items-center rounded-xl bg-indigo-500 shadow-lg shadow-indigo-500/25">
               <Building2 className="size-5" aria-hidden="true" />
             </span>
             <span className="text-lg">TenantFlow</span>
           </Link>
-          <nav className="flex items-center gap-2" aria-label="Account navigation">
-            <Link href="/pricing" className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/10 hover:text-white")}>Pricing</Link>
+          <nav className="flex items-center gap-1 sm:gap-2" aria-label="Account navigation">
+            <Link href="/pricing" className={cn(buttonVariants({ variant: "ghost" }), "hidden text-slate-200 hover:bg-white/10 hover:text-white sm:inline-flex")}>Pricing</Link>
             <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/10 hover:text-white")}>
               Log in
             </Link>
             <Link href="/register" className={cn(buttonVariants(), "bg-white text-slate-950 hover:bg-slate-200")}>
-              Create account
+              <span className="hidden sm:inline">Create account</span><span className="sm:hidden">Get started</span>
             </Link>
           </nav>
         </header>
 
-        <section className="grid flex-1 items-center gap-16 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+        <section className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-24">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1.5 text-sm text-indigo-200">
               <LockKeyhole className="size-4" aria-hidden="true" />
               Secure multi-tenant foundation
             </div>
-            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-              Run every workspace with clarity.
+            <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.035em] text-balance sm:text-6xl">
+              Run your business without losing tenant boundaries.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-              TenantFlow gives growing teams a secure home for their operations, with tenant isolation designed into every layer.
+              TenantFlow brings customer operations, invoicing, sales, expenses, billing, and analytics into one secure workspace for growing teams.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "bg-indigo-500 px-5 text-white hover:bg-indigo-400")}>
-                Start securely <ArrowRight className="size-4" aria-hidden="true" />
+                Explore TenantFlow <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
               <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "border-white/15 bg-white/5 px-5 text-white hover:bg-white/10 hover:text-white")}>
                 Sign in
               </Link>
             </div>
+            <ul className="mt-8 grid gap-3 text-sm text-slate-300 sm:grid-cols-3" aria-label="Core capabilities">
+              {capabilities.map(({ icon: Icon, label }) => <li key={label} className="flex items-start gap-2"><Icon className="mt-0.5 size-4 shrink-0 text-indigo-300" aria-hidden="true" /><span>{label}</span></li>)}
+            </ul>
           </div>
 
           <div className="relative">
@@ -101,14 +114,18 @@ export default function Home() {
                     Foundation status
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full w-1/3 rounded-full bg-indigo-500" />
+                    <div className="h-full w-full rounded-full bg-indigo-500" />
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">Authentication and tenant-safe data access are being established first.</p>
+                  <p className="mt-3 text-xs text-slate-500">Authentication, tenant isolation, core workflows, FastAPI integration, and deployment automation are implemented.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
+        <footer className="flex flex-col gap-2 border-t border-white/10 py-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>TenantFlow — a security-focused SaaS engineering portfolio project.</p>
+          <p>Stripe integration uses Test Mode only.</p>
+        </footer>
       </div>
     </main>
   );

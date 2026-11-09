@@ -8,12 +8,15 @@ export const metadata: Metadata = {
     template: "%s | TenantFlow",
   },
   description: "Secure multi-tenant business management for growing teams.",
+  applicationName: "TenantFlow",
+  keywords: ["multi-tenant SaaS", "FastAPI", "Next.js", "PostgreSQL RLS"],
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-slate-50">{children}</body>
     </html>
   );
 }
