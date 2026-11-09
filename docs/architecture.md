@@ -2,6 +2,86 @@
 
 TenantFlow uses Next.js App Router with FastAPI as its intended application backend. Existing TypeScript implementations remain available as an explicitly selected rollback path. Organization, team, customer, invoice, sales-pipeline, expense, billing, and analytics screens use Python APIs through server-only adapters.
 
+## System context
+
+```mermaid
+flowchart LR
+    user[Browser user]
+    next[Next.js on Vercel<br/>App Router + server actions]
+    api[FastAPI on Render<br/>application API]
+    auth[Supabase Auth<br/>sessions + JWTs]
+    db[(Supabase PostgreSQL<br/>forced RLS)]
+    storage[(Supabase Storage<br/>private receipts)]
+    stripe[Stripe Test Mode<br/>checkout + webhooks]
+
+    user -->|HTTPS| next
+    user -->|sign in / refresh| auth
+    next -->|HTTPS + bearer JWT| api
+    next -->|cookie-aware auth| auth
+    api -->|restricted runtime role<br/>transaction-local claims| db
+    api -->|user-scoped operations| storage
+    next -->|Test Mode checkout| stripe
+    stripe -->|signed raw webhook| next
+    next -->|verified event| api
+    api -->|dedicated webhook role| db
+```
+
+Only the Supabase project URL and publishable key reach the browser. Database URLs, Stripe secrets, webhook secrets, migration credentials, and the FastAPI service URL used by server adapters remain server-side.
+
+## Authorization path
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Browser
+    participant Next as Next.js server
+    participant Auth as Supabase Auth
+    participant API as FastAPI
+    participant DB as PostgreSQL + RLS
+
+    Browser->>Next: Protected request with session cookies
+    Next->>Auth: Validate user and refresh session
+    Auth-->>Next: Verified user + access token
+    Next->>API: HTTPS request + bearer token + request ID
+    API->>Auth: Verify JWT issuer, audience, signature, expiry
+    API->>DB: Begin transaction as restricted runtime role
+    API->>DB: SET LOCAL authenticated JWT claims
+    API->>DB: Organization-qualified query or mutation
+    DB-->>API: RLS-filtered result
+    API-->>Next: Structured response or safe error
+    Next-->>Browser: Server-rendered UI
+```
+
+Membership checks in Next.js or FastAPI do not replace RLS. The database independently evaluates the same authenticated identity inside the transaction, providing defense in depth.
+
+## Build and deployment path
+
+```mermaid
+flowchart TB
+    git[GitHub feature branch]
+    ci[Continuous integration<br/>Ruff · mypy · Pytest<br/>ESLint · TypeScript · Vitest · Next build]
+    supply[Supply-chain checks<br/>pip-audit · npm audit]
+    images[Docker verification<br/>multi-stage · non-root · health checks]
+    live{Manual live-security gate<br/>RLS · authenticated Playwright<br/>Stripe Test Mode}
+    vercel[Vercel<br/>Next.js]
+    render[Render<br/>FastAPI container]
+    supabase[Supabase managed services]
+
+    git --> ci
+    git --> supply
+    git --> images
+    ci --> live
+    supply --> live
+    images --> live
+    live -->|all executed; zero skips/failures| vercel
+    live -->|all executed; zero skips/failures| render
+    vercel --> supabase
+    render --> supabase
+    live -->|missing credentials or skips| blocked[Merge and promotion blocked]
+```
+
+Docker Compose reproduces the Next.js-to-FastAPI service boundary locally. Deployment keeps Supabase as the managed Auth, PostgreSQL, and Storage provider; application containers never run migrations.
+
 ## Request flow
 
 1. `src/proxy.ts` refreshes Supabase cookies and protects dashboard routes.
