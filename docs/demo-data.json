@@ -1,0 +1,73 @@
+{
+  "$schema": "./demo-data.schema.json",
+  "notice": "Fictional development-only portfolio data. Do not import into production.",
+  "organization": {
+    "name": "Northstar Studio Demo",
+    "slug": "northstar-studio-demo"
+  },
+  "customers": [
+    {
+      "name": "Avery Chen",
+      "company": "Atlas Paper Co.",
+      "email": "avery@atlas-paper.example",
+      "phone": "+1 202-555-0101",
+      "status": "active"
+    },
+    {
+      "name": "Jordan Silva",
+      "company": "Lumen Workshop",
+      "email": "jordan@lumen-workshop.example",
+      "phone": "+1 202-555-0102",
+      "status": "lead"
+    },
+    {
+      "name": "Sam Rivera",
+      "company": "Harbor & Pine",
+      "email": "sam@harbor-pine.example",
+      "phone": "+1 202-555-0103",
+      "status": "active"
+    }
+  ],
+  "deals": [
+    {
+      "title": "Atlas onboarding package",
+      "customer": "Atlas Paper Co.",
+      "stage": "Proposal",
+      "valueMinor": 480000,
+      "currency": "USD"
+    },
+    {
+      "title": "Lumen brand refresh",
+      "customer": "Lumen Workshop",
+      "stage": "Qualified",
+      "valueMinor": 725000,
+      "currency": "USD"
+    }
+  ],
+  "invoice": {
+    "customer": "Atlas Paper Co.",
+    "currency": "USD",
+    "items": [
+      { "description": "Discovery and planning", "quantity": 1, "unitPriceMinor": 120000 },
+      { "description": "Implementation sprint", "quantity": 2, "unitPriceMinor": 180000 }
+    ]
+  },
+  "expenses": [
+    {
+      "vendor": "Example Cloud Tools",
+      "category": "Software",
+      "amountMinor": 4900,
+      "currency": "USD",
+      "paymentMethod": "card",
+      "status": "paid"
+    },
+    {
+      "vendor": "Demo Office Supply",
+      "category": "Office",
+      "amountMinor": 8650,
+      "currency": "USD",
+      "paymentMethod": "bank_transfer",
+      "status": "pending"
+    }
+  ]
+}
