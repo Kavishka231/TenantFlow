@@ -56,6 +56,7 @@ jobs:
     env:
       CI: "true"
       DATABASE_URL: postgresql://runtime:placeholder@127.0.0.1:5432/tenantflow
+      MIGRATION_DATABASE_URL: postgresql://migration:placeholder@127.0.0.1:5432/tenantflow
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
@@ -81,6 +82,9 @@ jobs:
 
       - name: Run TypeScript checks
         run: npm run typecheck
+
+      - name: Check Drizzle schema and migrations
+        run: npm run db:check
 
       - name: Run frontend unit and contract tests
         run: npm run test:run -- --exclude "src/db/*.integration.test.ts"
