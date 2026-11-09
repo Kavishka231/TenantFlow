@@ -1,12 +1,65 @@
 # TenantFlow
 
-TenantFlow is a production-oriented, multi-tenant SaaS foundation built with Next.js, FastAPI, Supabase Auth, PostgreSQL Row-Level Security (RLS), and Drizzle ORM.
+TenantFlow is a production-oriented, multi-tenant business operations platform built with Next.js, FastAPI, Supabase Auth, PostgreSQL Row-Level Security (RLS), and Drizzle ORM. It is designed as a software engineering internship portfolio project: the focus is secure tenant boundaries, maintainable full-stack architecture, realistic workflows, automated verification, and honest deployment readiness.
+
+> Stripe is integrated in **Test Mode only**. TenantFlow never creates live charges.
+
+## Portfolio highlights
+
+- defense-in-depth tenant isolation through verified Supabase identities, server-side permissions, and forced PostgreSQL RLS;
+- organization, team, customer, invoice, sales-pipeline, expense, billing, and analytics workflows;
+- FastAPI as the intended backend with a deliberate, fail-closed TypeScript rollback mode;
+- structured API errors, request correlation, health checks, and non-root production containers;
+- CI quality gates, dependency audits, Docker image verification, and separately gated live security tests;
+- responsive, accessible Next.js UI with explicit loading, empty, error, unavailable, and session-recovery states.
+
+## Screenshots
+
+These images were captured from the real optimized Next.js application. They are not generated mockups and contain no private data.
+
+| Landing experience | Authentication |
+| --- | --- |
+| ![TenantFlow landing page](docs/assets/tenantflow-home.png) | ![TenantFlow login page](docs/assets/tenantflow-login.png) |
+
+<p align="center">
+  <img src="docs/assets/tenantflow-pricing-mobile.png" alt="TenantFlow mobile pricing page showing Stripe Test Mode" width="360" />
+</p>
+
+## Technology stack
+
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Web | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui | Server-rendered UI, server actions, session-aware adapters |
+| API | Python 3.14, FastAPI, Pydantic, SQLAlchemy | Authenticated business APIs and authorization |
+| Identity | Supabase Auth | Email/password identities, sessions, JWTs |
+| Data | Supabase PostgreSQL, Drizzle ORM | Reviewed migrations, constraints, forced RLS |
+| Files | Supabase Storage | Private, tenant-qualified expense receipts |
+| Billing | Stripe Test Mode | Checkout, portal, signed webhook synchronization |
+| Delivery | Docker, Compose, Vercel, Render, GitHub Actions | Local orchestration, CI, image checks, deployment targets |
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+  browser[Browser] -->|HTTPS| next[Next.js / Vercel]
+  browser --> auth[Supabase Auth]
+  next -->|JWT + request ID| api[FastAPI / Render]
+  api -->|restricted role + RLS claims| postgres[(Supabase PostgreSQL)]
+  api --> storage[(Private Storage)]
+  stripe[Stripe Test Mode] -->|signed webhook| next
+  next -->|verified event| api
+```
+
+See the [architecture documentation](docs/architecture.md) for runtime, authorization, and deployment diagrams.
 
 ## Current status
 
-Day 21 adds production containerization, repeatable local orchestration,
-required CI quality and dependency gates, isolated live-security automation, and
-Vercel/Render deployment preparation. FastAPI remains the intended backend, the
+Day 22 adds final portfolio UI polish, unified responsive workspace navigation,
+session and unavailable-route recovery, safe fictional demo data, genuine
+application screenshots, and reviewer-focused documentation. Day 21 provides
+production containerization, repeatable local orchestration, required CI quality
+and dependency gates, isolated live-security automation, and Vercel/Render
+deployment preparation. FastAPI remains the intended backend, the
 TypeScript/Drizzle implementation remains an explicit rollback mode, and failed
 or unauthorized Python mutations never trigger a second database operation.
 Development migrations remain applied through `0024`; live RLS, Stripe,
@@ -199,6 +252,15 @@ and FastAPI only on loopback, waits for backend health, and uses the private
 service name for frontend-to-backend requests. Application images run as
 non-root users and contain neither tests nor local environment files.
 
+## Deployment targets
+
+- **Vercel:** Next.js frontend with `TENANTFLOW_BACKEND=fastapi` and an HTTPS FastAPI origin.
+- **Render:** Docker-based FastAPI service with `/api/v1/health`, startup role validation, and a restricted runtime database login.
+- **Supabase:** managed Auth, PostgreSQL, and private Storage; migrations run as a separate controlled operation.
+- **Stripe:** Test Mode checkout and webhooks only, using a dedicated least-privilege webhook database role.
+
+Deployment is prepared but is not promoted as live-security verified until the manual RLS, authenticated Playwright, and Stripe sandbox workflow executes with zero skips and failures. See [deployment.md](docs/deployment.md).
+
 ## Verification commands
 
 ```bash
@@ -266,6 +328,7 @@ state; normal authenticated connections cannot execute that function.
 - [Security](docs/security.md)
 - [Deployment](docs/deployment.md)
 - [Live verification](docs/live-verification.md)
+- [Portfolio demo data](docs/demo.md)
 - [Roadmap](docs/roadmap.md)
 
 No license has been selected. Do not assume permission to redistribute the project.
