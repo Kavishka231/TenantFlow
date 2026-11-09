@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Info } from "lucide-react";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,10 @@ type AuthFormProps = {
   action: AuthAction;
   mode: "login" | "register";
   next?: string;
+  notice?: string;
 };
 
-export function AuthForm({ action, mode, next }: AuthFormProps) {
+export function AuthForm({ action, mode, next, notice }: AuthFormProps) {
   const [state, formAction, pending] = useActionState(action, initialAuthState);
   const isLogin = mode === "login";
 
@@ -44,6 +46,12 @@ export function AuthForm({ action, mode, next }: AuthFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {notice ? (
+          <p className="mb-4 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm leading-6 text-sky-900" role="status">
+            <Info className="mt-1 size-4 shrink-0" aria-hidden="true" />
+            {notice}
+          </p>
+        ) : null}
         <form action={formAction} className="space-y-4">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           {!isLogin ? (

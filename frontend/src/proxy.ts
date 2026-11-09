@@ -35,7 +35,12 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtectedRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.search = "";
+    loginUrl.searchParams.set(
+      "next",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    loginUrl.searchParams.set("reason", "session-required");
     return NextResponse.redirect(loginUrl);
   }
 
