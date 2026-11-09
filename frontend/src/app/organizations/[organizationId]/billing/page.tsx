@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { createCheckoutAction, createPortalAction } from "@/app/billing/actions";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getBillingThroughBackend, listPlansThroughBackend } from "@/lib/backend/billing";
@@ -32,6 +33,7 @@ export default async function BillingPage({ params, searchParams }: {
   const stripeReady = billing.stripeConfigured;
   return <main className="min-h-screen bg-slate-50 px-6 py-10"><div className="mx-auto max-w-5xl space-y-6">
     <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}><ArrowLeft /> Dashboard</Link>
+    <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
     <header><p className="text-sm font-medium text-indigo-600">{organization.name}</p><h1 className="mt-1 text-3xl font-semibold">Subscription billing</h1><p className="mt-2 text-muted-foreground">Owner-only TenantFlow plan management, securely hosted by Stripe.</p></header>
     {query.checkout === "success" ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Checkout completed. Stripe is synchronizing your subscription.</p> : null}
     {query.checkout === "cancelled" ? <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Checkout was cancelled; no local subscription was activated.</p> : null}

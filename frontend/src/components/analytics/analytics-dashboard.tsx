@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CustomerGrowthChart, FinancialChart, InvoiceStatusChart } from "@/components/analytics/charts";
 import { ExpenseCategoryChart, MonthlyExpenseChart } from "@/components/expenses/expense-charts";
 import { DateRangeFilter } from "@/components/analytics/date-range-filter";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MonthlyFinancialSeries } from "@/lib/analytics/buckets";
@@ -25,6 +26,7 @@ export function AnalyticsDashboard({ organization, range, metrics, financial, in
 }) {
   return <div className="space-y-8">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-medium capitalize text-indigo-600">{organization.role} workspace</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">{organization.name}</h1><p className="mt-2 text-sm text-muted-foreground">Business performance from {range.start} to {range.end}</p></div><DateRangeFilter range={range} /></div>
+    <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
     <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       <MetricCard icon={ContactRound} label="Total customers" value={String(metrics.totalCustomers)} />
       <MetricCard icon={FileText} label="Invoices in range" value={String(metrics.totalInvoices)} />

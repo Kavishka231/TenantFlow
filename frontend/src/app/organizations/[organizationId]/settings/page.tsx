@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { OrganizationSettingsForm } from "@/components/organizations/settings-form";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrganizationPermission } from "@/lib/organizations/authorization";
@@ -63,6 +64,7 @@ async function OrganizationSettingsContent({
         <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}>
           <ArrowLeft aria-hidden="true" /> Back to dashboard
         </Link>
+        <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
         <header>
           <p className="text-sm font-medium capitalize text-indigo-600">
             {organization.role} access

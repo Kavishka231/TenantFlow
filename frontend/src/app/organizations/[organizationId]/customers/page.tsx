@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { CustomerStatusBadge } from "@/components/customers/status-badge";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ async function CustomersContent({
         <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}>
           <ArrowLeft aria-hidden="true" /> Back to dashboard
         </Link>
+        <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <header>

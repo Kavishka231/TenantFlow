@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { InvoiceStatusBadge } from "@/components/invoices/status-badge";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ async function Content({ params, searchParams }: { params: Promise<{ organizatio
   const result = await listInvoicesThroughBackend(user.id, session?.access_token, organization.id, query); const canManage = organization.role !== "member";
   return <main className="min-h-screen bg-slate-50 px-6 py-10"><div className="mx-auto max-w-6xl space-y-6">
     <Link href="/dashboard" className={cn(buttonVariants({ variant: "ghost" }), "-ml-3")}><ArrowLeft /> Back to dashboard</Link>
+    <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
     <div className="flex flex-wrap items-end justify-between gap-4"><header><p className="text-sm font-medium text-indigo-600">{organization.name}</p><h1 className="mt-1 text-3xl font-semibold">Invoices</h1><p className="mt-2 text-muted-foreground">{result.total} invoice{result.total === 1 ? "" : "s"}</p></header>{canManage ? <Link href={`/organizations/${organization.id}/invoices/new`} className={buttonVariants()}><Plus /> New invoice</Link> : null}</div>
     {first(raw.invoiceStatus) === "deleted" ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Draft invoice deleted.</p> : null}
     <Card><CardContent><form method="get" className="grid gap-3 md:grid-cols-[1fr_11rem_11rem_7rem_auto] md:items-end"><div className="relative"><label htmlFor="invoice-search" className="sr-only">Search invoices</label><Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input id="invoice-search" name="q" defaultValue={query.q} placeholder="Number or customer…" className="pl-9" /></div><Select label="Status" name="status" value={query.status} options={[["all","All"],["draft","Draft"],["sent","Sent"],["partially_paid","Partially paid"],["paid","Paid"],["overdue","Overdue"],["cancelled","Cancelled"]]} /><Select label="Sort" name="sort" value={query.sort} options={[["newest","Newest"],["oldest","Oldest"],["due_soon","Due soon"],["amount_high","Highest amount"]]} /><Select label="Per page" name="pageSize" value={String(query.pageSize)} options={[["10","10"],["25","25"],["50","50"]]} /><button className={buttonVariants({ variant: "outline" })}>Apply</button></form></CardContent></Card>

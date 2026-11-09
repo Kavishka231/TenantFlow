@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { revokeInvitationAction } from "@/app/team/actions";
+import { WorkspaceNavigation } from "@/components/organizations/workspace-navigation";
 import { InvitationForm } from "@/components/team/invitation-form";
 import { MemberActions } from "@/components/team/member-actions";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -54,6 +55,7 @@ async function TeamContent({
         >
           <ArrowLeft aria-hidden="true" /> Back to dashboard
         </Link>
+        <WorkspaceNavigation organizationId={organization.id} role={organization.role} />
 
         <header>
           <p className="text-sm font-medium capitalize text-indigo-600">
